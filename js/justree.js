@@ -23,15 +23,19 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 	config.freqMin = 220.0;
 	config.freqMax = 440.0;
-	config.timeLenS = 10.0;
+	config.timeLenAbs = 10.0;
 	config.depthMin = 3;
 	config.depthMax = 8;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.5;
-	config.ratios = [1, 2, 3, 4];
+	config.ratios = [1, 2];
 	config.ratiosLen = config.ratios.length;
 	
+	/* shared */
+	var shared = justree.shared = {};
+	shared.timePlaybackRel = 0.0;
+
 	/* tree */
 	var tree = justree.tree = {};
 	var RatioNode = tree.RatioNode = ObjectBase.extend({
@@ -94,6 +98,13 @@ window.justree = window.justree || {};
 		}
 
 		return node;
+	};
+
+	/* ui */
+	var ui = justree.ui = {};
+	ui.init = function () {};
+	ui.callbackPlayClick = function () {
+		console.log('lol');
 	};
 
 	/* audio */
@@ -159,46 +170,72 @@ window.justree = window.justree || {};
 	video.init = function (canvasId) {
 		video.canvas = $('#justree-ui').get(0);
 		video.canvasCtx = video.canvas.getContext('2d');
+		video.viewportWidth = -1;
+		video.viewportHeight = -1;
+		video.canvasWidth = -1;
+		video.canvasHeight = -1;
+		video.root = null;
+		video.grid = [];
 	};
-	video.callbackWindowResize = function () {
-		var viewportWidth = $(window).width();
-		var viewportHeight = $(window).height();
-		video.canvasWidth = video.canvas.width;
-		video.canvasHeight = video.canvas.height;
-		//console.log('(' + String(viewportWidth) + ', ' + String(viewportHeight) + ')');
-		video.repaint(video.canvasCtx, video.root, 0, 0, video.canvasWidth, video.canvasHeight);
-	};
-	video.repaint = function (ctx, node, x, y, width, height) {
+	video.treeToGrid = function (node, x, y, width, height, grid) {
 		if (node.isLeaf()) {
 			var h = Math.random();
 			//node.ratio / 7.0;
 			var s = Math.random();
 			var l = (Math.random() * 0.75) + 0.25;
 			var hsl = Array(h, s, l);
-			ctx.fillStyle = rgbToString(hslToRgb(hsl));
-			ctx.fillRect(x, y, width, height);
+			grid.push(Array(rgbToString(hslToRgb(hsl)), x, y, width, height));
 		}
 		else {
 			var ratio = (node.left.ratio / (node.left.ratio + node.right.ratio));
 			if (node.dim === 0) {
 				var offsetX = width * ratio;
-				video.repaint(ctx, node.left, x, y, offsetX, height);
-				video.repaint(ctx, node.right, x + offsetX, y, width - offsetX, height);
+				video.treeToGrid(node.left, x, y, offsetX, height, grid);
+				video.treeToGrid(node.right, x + offsetX, y, width - offsetX, height, grid);
 			}
 			else {
 				var offsetY = height * ratio;
-				video.repaint(ctx, node.left, x, y, width, offsetY);
-				video.repaint(ctx, node.right, x, y + offsetY, width, height - offsetY);
+				video.treeToGrid(node.left, x, y, width, offsetY, grid);
+				video.treeToGrid(node.right, x, y + offsetY, width, height - offsetY, grid);
 			}
+		}
+	};
+	video.callbackWindowResize = function () {
+		var viewportWidth = $(window).width();
+		var viewportHeight = $(window).height();
+		if (viewportWidth !== video.viewportWidth || viewportHeight !== video.viewportHeight) {
+			video.viewportHeight = viewportWidth;
+			video.viewportWidth = viewportHeight;
+			video.canvasWidth = video.canvas.width;
+			video.canvasHeight = video.canvas.height;
+			video.repaint(video.canvasCtx, video.root, 0, 0, video.canvasWidth, video.canvasHeight);
+		}
+	};
+	video.animate = function () {
+		video.repaint();
+		window.requestAnimationFrame(video.animate);
+	};
+	video.repaint = function () {
+		var ctx = video.canvasCtx;
+		var width = video.canvasWidth;
+		var height = video.canvasHeight;
+		for (var i = 0; i < video.grid.length; ++i) {
+			var region = video.grid[i];
+			ctx.fillStyle = region[0];
+			ctx.fillRect(region[1] * width, region[2] * height, region[3] * width, region[4] * height);
 		}
 	};
 	video.rootSet = function(root) {
 		$('#debug #msg').html(root.toString());
 		video.root = root;
+		video.grid = [];
+		video.treeToGrid(video.root, 0, 0, 1.0, 1.0, video.grid);
+		console.log(video.grid);
 	};
 
 	/* init */
 	var callbackDomReady = function () {
+		ui.init();
 		audio.init();
 		video.init('justree-ui');
 		
@@ -213,6 +250,12 @@ window.justree = window.justree || {};
 
 		// register resize callback
 		$(window).resize(video.callbackWindowResize);
+
+		// register play callback
+		$('#ui #play').on('click', ui.callbackPlayClick);
+
+		// animiate
+		// window.requestAnimationFrame(video.animate);
 		
 		// draw views
 		video.callbackWindowResize();
