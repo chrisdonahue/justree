@@ -21,20 +21,29 @@ window.justree = window.justree || {};
 
 	/* config */
 	var config = justree.config = {}
+    config.blockSize = 1024;
 	config.freqMin = 220.0;
 	config.freqMax = 440.0;
-	config.timeLenAbs = 10.0;
+	config.timeLenAbs = 2.0;
 	config.depthMin = 3;
 	config.depthMax = 8;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.5;
 	config.ratios = [1, 2];
+    config.ratiosTime = []; // TODO
+    config.ratiosFreq = [];
 	config.ratiosLen = config.ratios.length;
 	
 	/* shared */
 	var shared = justree.shared = {};
-	shared.timePlaybackRel = 0.0;
+    var PlayheadStateEnum = {
+        'STOPPED': 0,
+        'PLAYING': 1,
+        'LOOPING': 2
+    };
+    shared.playheadState = PlayheadStateEnum.STOPPED;
+    shared.playheadPosRel = 0.0;
 
 	/* tree */
 	var tree = justree.tree = {};
@@ -104,18 +113,27 @@ window.justree = window.justree || {};
 	var ui = justree.ui = {};
 	ui.init = function () {};
 	ui.callbackPlayClick = function () {
-		console.log('lol');
+        shared.playheadState = PlayheadStateEnum.PLAYING;
+        shared.playheadPosRel = 0.0;
 	};
+    ui.callbackLoopClick = function () {
+        shared.playheadState = PlayheadStateEnum.LOOPING;
+    };
+    ui.callbackStopClick = function () {
+        shared.playheadState = PlayheadStateEnum.STOPPED;
+        shared.playheadPosRel = 0.0;
+    };
 
 	/* audio */
 	var audio = justree.audio = {};
 	audio.init = function () {
 		var audioCtx = audio.audioCtx = new window.AudioContext();
 		var sampleRate = audio.sampleRate = audioCtx.sampleRate;
-		audio.sampleRateInverse = 1.0 / sampleRate;
-		var blockSize = audio.blockSize = 1024;
-		audio.blockSizeInverse = 1.0 / blockSize;
+		var sampleRateInverse = audio.sampleRateInverse = 1.0 / sampleRate;
+		var blockSize = audio.blockSize = config.blockSize;
+		var blockSizeInverse = audio.blockSizeInverse = 1.0 / blockSize;
 		var scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
+        audio.playheadPosRelStep = (blockSize * sampleRateInverse) / config.timeLenAbs;
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
 	};
@@ -131,6 +149,25 @@ window.justree = window.justree || {};
 			}
 			//bufferCh[0] = 0.25;
 		}
+
+        switch (shared.playheadState) {
+            case PlayheadStateEnum.STOPPED:
+                break;
+            case PlayheadStateEnum.PLAYING:
+                shared.playheadPosRel += audio.playheadPosRelStep;
+                if (shared.playheadPosRel >= 1.0) {
+                    shared.playheadState = PlayheadStateEnum.STOPPED;
+                }
+                break;
+            case PlayheadStateEnum.LOOPING:
+                shared.playheadPosRel += audio.playheadPosRelStep;
+                while (shared.playheadPosRel >= 1.0) {
+                    shared.playheadPosRel -= 1.0;
+                }
+                break;
+            default:
+                break;
+        }
 	};
 
 	/* video */
@@ -219,11 +256,24 @@ window.justree = window.justree || {};
 		var ctx = video.canvasCtx;
 		var width = video.canvasWidth;
 		var height = video.canvasHeight;
+
+        // clear
+        ctx.clearRect(0, 0, width, height);
+
+        // draw treemap
 		for (var i = 0; i < video.grid.length; ++i) {
 			var region = video.grid[i];
 			ctx.fillStyle = region[0];
 			ctx.fillRect(region[1] * width, region[2] * height, region[3] * width, region[4] * height);
 		}
+
+        // draw playback line
+        ctx.strokeStyle = 'rgb(0, 0, 0)';
+        ctx.beginPath();
+        var playheadX = shared.playheadPosRel * width;
+        ctx.moveTo(playheadX, 0);
+        ctx.lineTo(playheadX, height);
+        ctx.stroke();
 	};
 	video.rootSet = function(root) {
 		$('#debug #msg').html(root.toString());
@@ -253,9 +303,11 @@ window.justree = window.justree || {};
 
 		// register play callback
 		$('#ui #play').on('click', ui.callbackPlayClick);
+        $('#ui #loop').on('click', ui.callbackLoopClick);
+        $('#ui #stop').on('click', ui.callbackStopClick);
 
 		// animiate
-		// window.requestAnimationFrame(video.animate);
+		window.requestAnimationFrame(video.animate);
 		
 		// draw views
 		video.callbackWindowResize();
