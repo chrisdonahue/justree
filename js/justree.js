@@ -166,9 +166,10 @@ window.justree = window.justree || {};
 	};
 	video.repaint = function (ctx, node, x, y, width, height) {
 		if (node.isLeaf()) {
-			var h = node.ratio / 7.0;
-			var s = 0.7;
-			var l = node.on ? 0.6 : 0.4;
+			var h = Math.random();
+			//node.ratio / 7.0;
+			var s = Math.random();
+			var l = (Math.random() * 0.75) + 0.25;
 			var hsl = Array(h, s, l);
 			ctx.fillStyle = rgbToString(hslToRgb(hsl));
 			ctx.fillRect(x, y, width, height);
