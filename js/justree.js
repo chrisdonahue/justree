@@ -21,6 +21,9 @@ window.justree = window.justree || {};
 
 	/* config */
 	var config = justree.config = {}
+	config.freqMin = 220.0;
+	config.freqMax = 440.0;
+	config.timeLenS = 10.0;
 	config.depthMin = 3;
 	config.depthMax = 8;
 	config.nDims = 2;
@@ -55,7 +58,8 @@ window.justree = window.justree || {};
 		}
 	});
 	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
-		var dim = Math.floor(Math.random() * nDims);
+		//var dim = Math.floor(Math.random() * nDims);
+		var dim = depthCurr % 2;
 		var ratio = config.ratios[Math.floor(Math.random() * config.ratiosLen)];
 		var on = Math.random() < pOn;
 		var node = new RatioNode(dim, ratio, on);
