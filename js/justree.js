@@ -34,27 +34,81 @@ window.justree = window.justree || {};
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
 	config.ratiosLen = config.ratios.length;
+    config.synthTabLen = 4096;
+    config.synthVoicesNum = 8;
+    config.synthAtk = 0.05;
+    config.synthRel = 0.25;
 	
 	/* shared */
 	var shared = justree.shared = {};
-    var PlayheadStateEnum = {
+    var PlayheadStateEnum = shared.PlayheadStateEnum = {
         'STOPPED': 0,
         'PLAYING': 1,
         'LOOPING': 2
     };
-    shared.playheadState = PlayheadStateEnum.STOPPED;
-    shared.playheadPosRel = 0.0;
+    shared.nodeToGrid = shared.nodeToGrid = function (node, x, y, width, height, grid) {
+        if (node.isLeaf()) {
+            var h = Math.random();
+            //node.ratio / 7.0;
+            var s = Math.random();
+            var l = (Math.random() * 0.75) + 0.25;
+            var hsl = Array(h, s, l);
+            grid.push(Array(node, x, y, width, height, rgbToString(hslToRgb(hsl))));
+        }
+        else {
+            var ratio = (node.left.ratio / (node.left.ratio + node.right.ratio));
+            if (node.dim === 0) {
+                var offsetX = width * ratio;
+                shared.nodeToGrid(node.left, x, y, offsetX, height, grid);
+                shared.nodeToGrid(node.right, x + offsetX, y, width - offsetX, height, grid);
+            }
+            else {
+                var offsetY = height * ratio;
+                shared.nodeToGrid(node.left, x, y, width, offsetY, grid);
+                shared.nodeToGrid(node.right, x, y + offsetY, width, height - offsetY, grid);
+            }
+        }
+    };
+    shared.init = function () {
+        shared.playheadState = PlayheadStateEnum.STOPPED;
+        shared.playheadPosRel = 0.0;
+        shared.root = null;
+        shared.rootGrid = [];
+    };
+    shared.rootSet = function(root) {
+        $('#debug #msg').html(root.toString());
+        shared.root = root;
+        shared.rootGrid = [];
+        shared.nodeToGrid(shared.root, 0, 0, 1.0, 1.0, shared.rootGrid);
+        // sort by x ascending then y ascending
+        shared.rootGrid.sort(function (a, b) {
+            var aX = a[2];
+            var aY = a[3];
+            var bX = b[2];
+            var bY = b[3];
+            if (aX != bX) {
+                return aX - bX;
+            }
+            else {
+                return aY - bY;
+            }
+        });
+    };
 
 	/* tree */
 	var tree = justree.tree = {};
 	var RatioNode = tree.RatioNode = ObjectBase.extend({
 		constructor: function (dim, ratio, on) {
+            this.parent = null;
 			this.left = null;
 			this.right = null;
 			this.dim = dim;
 			this.ratio = ratio;
 			this.on = on;
 		},
+        isRoot: function () {
+            return this.parent === null;
+        },
 		isLeaf: function () {
 			return this.left === null && this.right === null;
 		},
@@ -70,6 +124,27 @@ window.justree = window.justree || {};
 			return string;
 		}
 	});
+    var swapSubTrees = function (subtree0, subtree1) {
+        subtree0Parent = subtree0.parent;
+        subtree1Parent = subtree1.parent;
+
+        // move 1 to place of 0
+        if (subtree0Parent !== null) {
+            if (subtree0Parent.left === subtree0) {
+                subtree0Parent.left = subtree1;
+                subtree1.parent = subtree0Parent;   
+            }
+            else {
+                subtree0Parent.right = subtree1;
+                subtree1.parent = subtree1Parent;
+            }
+        }
+        else {
+            subtree1.parent = null;
+        }
+
+        // TODO: finish lol
+    };
 	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
 		//var dim = Math.floor(Math.random() * nDims);
 		var dim = depthCurr % 2;
@@ -88,6 +163,8 @@ window.justree = window.justree || {};
 		if (Math.random() >= p) {
 			node.left = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
 			node.right = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
+            node.left.parent = node;
+            node.right.parent = node;
 		}
 
 		return node;
@@ -170,6 +247,20 @@ window.justree = window.justree || {};
         },
         release: function () {}
     });
+    var LineEnvGen = dsp.AdsrEnvGen = ObjectDsp.extend({
+        constructor: function (start, segments) {
+            this.valStart = start;
+            this.val = start;
+            this.segments = segments;
+            this.segmentCurr = 0;
+        },
+        prepare: function (sampleRate, blockSize) {
+            ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
+            this.val = this.valStart;
+        },
+        perform: function () {
+        },
+    });
     var CycTabRead4 = dsp.CycTabRead4 = ObjectDsp.extend({
         constructor: function (tab) {
             ObjectDsp.prototype.constructor.call(this);
@@ -182,6 +273,9 @@ window.justree = window.justree || {};
             this.tab = tab;
             this.tabLen = this.tab.len;
             this.tabMask = this.tabLen - 1;
+            this.tabPhase = 0.0;
+        },
+        phaseReset: function () {
             this.tabPhase = 0.0;
         },
         prepare: function (sampleRate, blockSize) {
@@ -256,21 +350,33 @@ window.justree = window.justree || {};
 		var blockSizeInverse = audio.blockSizeInverse = 1.0 / blockSize;
 		var scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
         audio.playheadPosRelStep = (blockSize * sampleRateInverse) / config.timeLenAbs;
+
+        audio.synthVoices = [];
+        audio.sineTab = dsp.tabGenerate('sine', config.synthTabLen);
+        for (var voice = 0; voice < config.synthVoicesNum; ++voice) {
+            audio.synthVoices.push(new CycTabRead4(audio.sineTab));
+        }
+
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
 	};
 	audio.callback = function (event) {
-		var blockOut = event.outputBuffer;
-		var blockLen = blockOut.length;
-		
-		for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
-			var bufferCh = blockOut.getChannelData(channel);
+        var blockOut = event.outputBuffer;
+        var blockLen = blockOut.length;
 
-			for (var sample = 0; sample < blockLen; ++sample) {
-				bufferCh[sample] = 0.0;
-			}
-			//bufferCh[0] = 0.25;
-		}
+        // clear buffer
+        for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
+            var bufferCh = blockOut.getChannelData(channel);
+
+            for (var sample = 0; sample < blockLen; ++sample) {
+                bufferCh[sample] = 0.0;
+            }
+        }
+
+        // return if stopped
+        if (shared.playheadState === PlayheadStateEnum.STOPPED) {
+            return;
+        }
 
         switch (shared.playheadState) {
             case PlayheadStateEnum.STOPPED:
@@ -336,29 +442,6 @@ window.justree = window.justree || {};
 		video.root = null;
 		video.grid = [];
 	};
-	video.treeToGrid = function (node, x, y, width, height, grid) {
-		if (node.isLeaf()) {
-			var h = Math.random();
-			//node.ratio / 7.0;
-			var s = Math.random();
-			var l = (Math.random() * 0.75) + 0.25;
-			var hsl = Array(h, s, l);
-			grid.push(Array(rgbToString(hslToRgb(hsl)), x, y, width, height));
-		}
-		else {
-			var ratio = (node.left.ratio / (node.left.ratio + node.right.ratio));
-			if (node.dim === 0) {
-				var offsetX = width * ratio;
-				video.treeToGrid(node.left, x, y, offsetX, height, grid);
-				video.treeToGrid(node.right, x + offsetX, y, width - offsetX, height, grid);
-			}
-			else {
-				var offsetY = height * ratio;
-				video.treeToGrid(node.left, x, y, width, offsetY, grid);
-				video.treeToGrid(node.right, x, y + offsetY, width, height - offsetY, grid);
-			}
-		}
-	};
 	video.callbackWindowResize = function () {
 		var viewportWidth = $(window).width();
 		var viewportHeight = $(window).height();
@@ -383,9 +466,9 @@ window.justree = window.justree || {};
         ctx.clearRect(0, 0, width, height);
 
         // draw treemap
-		for (var i = 0; i < video.grid.length; ++i) {
-			var region = video.grid[i];
-			ctx.fillStyle = region[0];
+		for (var i = 0; i < shared.rootGrid.length; ++i) {
+			var region = shared.rootGrid[i];
+			ctx.fillStyle = region[5];
 			ctx.fillRect(region[1] * width, region[2] * height, region[3] * width, region[4] * height);
 		}
 
@@ -397,40 +480,26 @@ window.justree = window.justree || {};
         ctx.lineTo(playheadX, height);
         ctx.stroke();
 	};
-	video.rootSet = function(root) {
-		$('#debug #msg').html(root.toString());
-		video.root = root;
-		video.grid = [];
-		video.treeToGrid(video.root, 0, 0, 1.0, 1.0, video.grid);
-	};
 
 	/* init */
 	var callbackDomReady = function () {
+        // init
+        shared.init();
 		ui.init();
 		audio.init();
 		video.init('justree-ui');
 		
 		// generate tree
 		var root = treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
-		
-		// draw tree as rectangle
-		video.rootSet(root);
+		shared.rootSet(root);
 
-		// remove scrollbars
+        // DOM callbacks
 		//$('body').css({'overflow': 'hidden'});
-
-		// register resize callback
-		$(window).resize(video.callbackWindowResize);
-
-		// register play callback
-		$('#ui #play').on('click', ui.callbackPlayClick);
+        $('#ui #play').on('click', ui.callbackPlayClick);
         $('#ui #loop').on('click', ui.callbackLoopClick);
         $('#ui #stop').on('click', ui.callbackStopClick);
-
-		// animiate
+		$(window).resize(video.callbackWindowResize);
 		window.requestAnimationFrame(video.animate);
-		
-		// draw views
 		video.callbackWindowResize();
 	};
 	$(document).ready(callbackDomReady);
