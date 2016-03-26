@@ -1,6 +1,6 @@
 window.justree = window.justree || {};
 
-(function ($, ObjectBase, justree) {
+(function ($, justree) {
 	/* require */
 	if (!window.supportsWebAudio) {
 		alert('Sorry, HTML5 Web Audio API not supported on this browser.');
@@ -95,236 +95,6 @@ window.justree = window.justree || {};
         });
     };
 
-	/* tree */
-	var tree = justree.tree = {};
-	var RatioNode = tree.RatioNode = ObjectBase.extend({
-		constructor: function (dim, ratio, on) {
-            this.parent = null;
-			this.left = null;
-			this.right = null;
-			this.dim = dim;
-			this.ratio = ratio;
-			this.on = on;
-		},
-        isRoot: function () {
-            return this.parent === null;
-        },
-		isLeaf: function () {
-			return this.left === null && this.right === null;
-		},
-		toString: function () {
-			var string = '(' + String(this.ratio);
-			if (this.left !== null) {
-				string += ' ' + this.left.toString();
-			}
-			if (this.right !== null) {
-				string += ' ' + this.right.toString();
-			}
-			string += ')';
-			return string;
-		}
-	});
-    var swapSubTrees = function (subtree0, subtree1) {
-        subtree0Parent = subtree0.parent;
-        subtree1Parent = subtree1.parent;
-
-        // move 1 to place of 0
-        if (subtree0Parent !== null) {
-            if (subtree0Parent.left === subtree0) {
-                subtree0Parent.left = subtree1;
-                subtree1.parent = subtree0Parent;   
-            }
-            else {
-                subtree0Parent.right = subtree1;
-                subtree1.parent = subtree1Parent;
-            }
-        }
-        else {
-            subtree1.parent = null;
-        }
-
-        // TODO: finish lol
-    };
-	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
-		//var dim = Math.floor(Math.random() * nDims);
-		var dim = depthCurr % 2;
-		var ratio = config.ratios[Math.floor(Math.random() * config.ratiosLen)];
-		var on = Math.random() < pOn;
-		var node = new RatioNode(dim, ratio, on);
-
-		var p = pTerm;
-		if (depthCurr < depthMin) {
-			p = 0.0;
-		}
-		else if (depthCurr >= depthMax) {
-			p = 1.0;
-		}
-
-		if (Math.random() >= p) {
-			node.left = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
-			node.right = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
-            node.left.parent = node;
-            node.right.parent = node;
-		}
-
-		return node;
-	};
-	var treeFull = tree.treeFull = function (depth, depthCurr) {
-		var on = Math.random() < pOn;
-		var weight = config.ratios[Math.floor(Math.random() * config.ratiosLen)];
-		var node = new Node(weight, on);
-
-		if (depthCurr < depth) {
-			node.left = treeFull(depth, depthCurr + 1);
-			node.right = treeFull(depth, depthCurr + 1);
-		}
-		else {
-			node.left = null;
-			node.right = null;
-		}
-
-		return node;
-	};
-
-    /* wavetable */
-    var dsp = justree.dsp = {};
-    dsp.isPositivePowerOfTwo = function (x) {
-        return (typeof x === 'number') && (x > 0) && ((x & (x - 1)) === 0);
-    };
-    dsp.allocateBufferFloat32 = function (bufferLen) {
-        return new Float32Array(bufferLen);
-    };
-    dsp.tabGenerate = function (type, len) {
-        var tab = dsp.allocateBufferFloat32(len);
-        switch(type) {
-            case 'sine':
-                for (var i = 0; i < length; i++) {
-                    tab[i] = Math.sin(2.0 * Math.PI * (i / length));
-                }
-                break;
-            default:
-                throw 'dsp.tabgenerate: Invalid table type (' + String(type) + ') specified.';
-        }
-        return tab;
-    };
-    var AudioBuffer = dsp.AudioBuffer = ObjectBase.extend({
-        constructor: function (channelsNum, samplesNum) {
-            this.channelsNum = channelsNum;
-            this.samplesNum = samplesNum;
-            this.buffer = {};
-            for (var i = 0; i < channelsNum; ++i) {
-                this.buffer[i] = dsp.allocateBufferFloat32(samplesNum);
-            }
-        },
-        channelGet: function (channelNum) {
-            if (channelNum < 0 || channelNum >= this.channelsNum) {
-                throw 'AudioBuffer.channelGet: Requested invalid channel number (' + channelNum + ').';
-            }
-
-            return this.buffer[channelNum];
-        },
-        clear: function () {
-            for (var channel = 0; channel < channelsNum; ++channel) {
-                var channelBuffer = this.channelGet(channelNum);
-                for (var sample = 0; sample < samplesNum; ++sample) {
-                    channelBuffer[sample] = 0.0;
-                }
-            }
-        }
-    });
-    var ObjectDsp = ObjectBase.extend({
-        constructor: function () {},
-        prepare: function (sampleRate, blockSize) {
-            this.sampleRate = sampleRate;
-            this.blockSize = blockSize;
-            this.sampleRateInverse = sampleRateInverse;
-            this.blockSizeInverse = blockSizeInverse;
-        },
-        perform: function (block) {
-            console.log(this);
-            console.log(typeof(this));
-            throw 'ObjectDsp.perform: Must be overriden.'
-        },
-        release: function () {}
-    });
-    var LineEnvGen = dsp.AdsrEnvGen = ObjectDsp.extend({
-        constructor: function (start, segments) {
-            this.valStart = start;
-            this.val = start;
-            this.segments = segments;
-            this.segmentCurr = 0;
-        },
-        prepare: function (sampleRate, blockSize) {
-            ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
-            this.val = this.valStart;
-        },
-        perform: function () {
-        },
-    });
-    var CycTabRead4 = dsp.CycTabRead4 = ObjectDsp.extend({
-        constructor: function (tab) {
-            ObjectDsp.prototype.constructor.call(this);
-            this.tab = tab !== undefined ? tab : null;
-            this.tabLen = this.tab === null ? -1 : tab.length;
-            this.tabMask = this.tabLen - 1;
-            this.tabPhase = 0.0;
-        },
-        tabSet: function (tab) {
-            this.tab = tab;
-            this.tabLen = this.tab.len;
-            this.tabMask = this.tabLen - 1;
-            this.tabPhase = 0.0;
-        },
-        phaseReset: function () {
-            this.tabPhase = 0.0;
-        },
-        prepare: function (sampleRate, blockSize) {
-            ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
-            if (this.tab === null) {
-                throw 'CycTabRead4.prepare: tabSet must be called first.'
-            }
-        },
-        perform: function (block) {
-            ObjectDsp.prototype.perform.call(this, block);
-            var freq = buffer.channelGet(0);
-            var out = buffer.channelGet(0);
-
-            var tabLen = this.tabLen;
-            var tabMask = this.tabMask;
-            var tab = this.tab;
-            var phase = this.tabPhase;
-
-            var freqCurr, phaseInc, phaseTrunc, phaseFrac, inm1, in0, inp1, inp2;
-
-            for (var i = 0; i < block.samplesNum; ++i) {
-                freqCurr = frequency[i];
-                phaseInc = freqCurr * tabLen;
-                phaseTrunc = Math.floor(phase);
-                phaseFrac = phase - phaseTrunc;
-
-                inm1 = tab[(phaseTrunc - 1) & tabMask];
-                in0 = tab[phaseTrunc & tabMask];
-                inp1 = tab[(phaseTrunc + 1) & tabMask];
-                inp2 = tab[(phaseTrunc + 2) & tabMask];
-
-                output[i] = in0 + 0.5 * phaseFrac * (inp1 - inm1 + 
-                    phaseFrac * (4.0 * inp1 + 2.0 * inm1 - 5.0 * in0 - inp2 +
-                    phaseFrac * (3.0 * (in0 - inp1) - inm1 + inp2)));
-
-                phase += phaseInc;
-            }
-
-            while (phase > tabLen) {
-                phase -= tabLen;
-            }
-            while (phase < 0.0) {
-                phase += tabLen;
-            }
-
-            this.phase = phase;
-        }
-    });
-
 	/* ui */
 	var ui = justree.ui = {};
 	ui.init = function () {};
@@ -356,6 +126,13 @@ window.justree = window.justree || {};
         for (var voice = 0; voice < config.synthVoicesNum; ++voice) {
             audio.synthVoices.push(new CycTabRead4(audio.sineTab));
         }
+
+        var segments = Array()
+        segments.push(Array(config.synthAtk, 1.0));
+        segments.push(Array(1.0 - config.synthAtk - config.synthRel, 1.0));
+        segments.push(Array(config.synthRel, 0.0));
+        audio.envTab = dsp.envGenerate(config.synthTabLen - 1, 0.0, segments);
+        console.log(audio.envTab);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
@@ -504,4 +281,4 @@ window.justree = window.justree || {};
 	};
 	$(document).ready(callbackDomReady);
 
-})(window.jQuery, window.ObjectBase, window.justree);
+})(window.jQuery, window.justree);
