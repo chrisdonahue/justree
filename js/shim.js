@@ -37,6 +37,8 @@
 
 	var ObjectBase = window.ObjectBase = function () {};
 
+	window.abstract = function (abstractBaseClass, method) {return method;};
+
 	// stolen from backbone.js who stole it from goog.inherits
 	var extend = ObjectBase.extend = function(protoProps, staticProps) {
 		var parent = this;
@@ -70,4 +72,5 @@
 
 		return child;
 	};
+
 })();

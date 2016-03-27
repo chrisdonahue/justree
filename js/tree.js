@@ -54,7 +54,7 @@ window.justree = window.justree || {};
 	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
 		//var dim = Math.floor(Math.random() * nDims);
 		var dim = depthCurr % 2;
-		var ratio = config.ratios[Math.floor(Math.random() * config.ratiosLen)];
+		var ratio = ratios[Math.floor(Math.random() * ratios.length)];
 		var on = Math.random() < pOn;
 		var node = new RatioNode(dim, ratio, on);
 

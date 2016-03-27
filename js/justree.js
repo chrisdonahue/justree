@@ -1,6 +1,6 @@
 window.justree = window.justree || {};
 
-(function ($, justree) {
+(function ($, _, justree) {
 	/* require */
 	if (!window.supportsWebAudio) {
 		alert('Sorry, HTML5 Web Audio API not supported on this browser.');
@@ -10,6 +10,10 @@ window.justree = window.justree || {};
 		alert('Sorry, HTML5 Canvas not supported on this browser.');
 		throw 'HTML5 Canvas not supported on this browser';
 	}
+
+    /* imports */
+    var dsp = justree.dsp;
+    var tree = justree.tree;
 
 	/* defines */
 	var defines = justree.defines = {};
@@ -21,19 +25,31 @@ window.justree = window.justree || {};
 
 	/* config */
 	var config = justree.config = {}
-    config.blockSize = 1024;
-	config.freqMin = 220.0;
-	config.freqMax = 440.0;
-	config.timeLenAbs = 2.0;
+
+    // tree params
 	config.depthMin = 3;
 	config.depthMax = 8;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.5;
-	config.ratios = [1, 2];
+    config.ratios = [1];
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
-	config.ratiosLen = config.ratios.length;
+    config.ratiosLen = config.ratios.length;
+
+    // audio params
+    config.blockSize = 1024;
+    config.freqMin = 220.0;
+    config.freqMaxRat = 4.0;
+    config.timeLenAbs = 10.0;
+    config.gainParam = {
+        'min': 0.0,
+        'max': 1.0,
+        'step': 0.01,
+        'valInit': 0.5
+    };
+
+    // synth params
     config.synthTabLen = 4096;
     config.synthVoicesNum = 8;
     config.synthAtk = 0.05;
@@ -46,26 +62,33 @@ window.justree = window.justree || {};
         'PLAYING': 1,
         'LOOPING': 2
     };
-    shared.nodeToGrid = shared.nodeToGrid = function (node, x, y, width, height, grid) {
+    shared.nodeToCells = shared.nodeToCells = function (node, x, y, width, height, cells) {
         if (node.isLeaf()) {
             var h = Math.random();
             //node.ratio / 7.0;
             var s = Math.random();
             var l = (Math.random() * 0.75) + 0.25;
             var hsl = Array(h, s, l);
-            grid.push(Array(node, x, y, width, height, rgbToString(hslToRgb(hsl))));
+            cells.push({
+                'node': node,
+                'x': x,
+                'y': y,
+                'width': width,
+                'height': height,
+                'rgbString': rgbToString(hslToRgb(hsl))
+            });
         }
         else {
             var ratio = (node.left.ratio / (node.left.ratio + node.right.ratio));
             if (node.dim === 0) {
                 var offsetX = width * ratio;
-                shared.nodeToGrid(node.left, x, y, offsetX, height, grid);
-                shared.nodeToGrid(node.right, x + offsetX, y, width - offsetX, height, grid);
+                shared.nodeToCells(node.left, x, y, offsetX, height, cells);
+                shared.nodeToCells(node.right, x + offsetX, y, width - offsetX, height, cells);
             }
             else {
                 var offsetY = height * ratio;
-                shared.nodeToGrid(node.left, x, y, width, offsetY, grid);
-                shared.nodeToGrid(node.right, x, y + offsetY, width, height - offsetY, grid);
+                shared.nodeToCells(node.left, x, y, width, offsetY, cells);
+                shared.nodeToCells(node.right, x, y + offsetY, width, height - offsetY, cells);
             }
         }
     };
@@ -73,15 +96,15 @@ window.justree = window.justree || {};
         shared.playheadState = PlayheadStateEnum.STOPPED;
         shared.playheadPosRel = 0.0;
         shared.root = null;
-        shared.rootGrid = [];
+        shared.rootCells = null;
     };
     shared.rootSet = function(root) {
         $('#debug #msg').html(root.toString());
         shared.root = root;
-        shared.rootGrid = [];
-        shared.nodeToGrid(shared.root, 0, 0, 1.0, 1.0, shared.rootGrid);
-        // sort by x ascending then y ascending
-        shared.rootGrid.sort(function (a, b) {
+        shared.rootCells = [];
+        shared.nodeToCells(shared.root, 0, 0, 1.0, 1.0, shared.rootCells);
+        // sort by x ascending then y descending
+        shared.rootCells.sort(function (a, b) {
             var aX = a[2];
             var aY = a[3];
             var bX = b[2];
@@ -90,7 +113,7 @@ window.justree = window.justree || {};
                 return aX - bX;
             }
             else {
-                return aY - bY;
+                return bY - aY;
             }
         });
     };
@@ -109,69 +132,174 @@ window.justree = window.justree || {};
         shared.playheadState = PlayheadStateEnum.STOPPED;
         shared.playheadPosRel = 0.0;
     };
+    ui.hookParamToSlider = function (param, sliderSelector) {
+        var $slider = $(sliderSelector);
+        $slider.attr('min', param['min']);
+        $slider.attr('max', param['max']);
+        $slider.attr('step', param['step']);
+        $slider.attr('value', param['val']);
+        $slider.on('input', function (event) {
+            param['val'] = event.target.value;
+        });
+    };
 
 	/* audio */
 	var audio = justree.audio = {};
 	audio.init = function () {
+        audio.gainParam = config.gainParam;
+        audio.params = [audio.gainParam];
+        for (var i = 0; i < audio.params.length; ++i) {
+            var param = audio.params[i];
+            param.val = param.valInit;
+            param.valLast = param.val;
+        }
+
 		var audioCtx = audio.audioCtx = new window.AudioContext();
 		var sampleRate = audio.sampleRate = audioCtx.sampleRate;
 		var sampleRateInverse = audio.sampleRateInverse = 1.0 / sampleRate;
 		var blockSize = audio.blockSize = config.blockSize;
 		var blockSizeInverse = audio.blockSizeInverse = 1.0 / blockSize;
 		var scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
-        audio.playheadPosRelStep = (blockSize * sampleRateInverse) / config.timeLenAbs;
 
+        audio.synthBuffer = new dsp.AudioBuffer(2, blockSize);
         audio.synthVoices = [];
-        audio.sineTab = dsp.tabGenerate('sine', config.synthTabLen);
+        audio.synthCellIdxToVoiceIdx = {};
+        audio.synthVoicesIdxAvailable = [];
+        audio.sineTab = dsp.allocateBufferFloat32(config.synthTabLen);
+        dsp.tabGenerate(audio.sineTab, 'sine');
         for (var voice = 0; voice < config.synthVoicesNum; ++voice) {
-            audio.synthVoices.push(new CycTabRead4(audio.sineTab));
+            audio.synthVoices.push(new dsp.CycTabRead4(audio.sineTab));
+            audio.synthVoicesIdxAvailable.push(voice);
         }
 
         var segments = Array()
         segments.push(Array(config.synthAtk, 1.0));
         segments.push(Array(1.0 - config.synthAtk - config.synthRel, 1.0));
         segments.push(Array(config.synthRel, 0.0));
-        audio.envTab = dsp.envGenerate(config.synthTabLen - 1, 0.0, segments);
-        console.log(audio.envTab);
+        audio.envTab = dsp.allocateBufferFloat32(config.synthTabLen);
+        dsp.envGenerate(audio.envTab, 0.0, segments);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
 	};
 	audio.callback = function (event) {
+        var sampleRate = audio.sampleRate;
+        var sampleRateInverse = audio.sampleRateInverse;
         var blockOut = event.outputBuffer;
         var blockLen = blockOut.length;
 
+        // convenience pointers to our internal buffer
+        var block = audio.synthBuffer;
+        var block0 = block.channelGet(0);
+        var block1 = block.channelGet(1);
+
         // clear buffer
-        for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
-            var bufferCh = blockOut.getChannelData(channel);
+        audio.synthBuffer.clear();
+
+        if (shared.playheadState !== PlayheadStateEnum.STOPPED &&
+            shared.rootCells !== null &&
+            shared.rootCells.length > 0) {
+            // calculate/dezipper (TODO) UI parameters
+            var gain = audio.gainParam.val;
+            gain = gain * gain * gain * gain;
+
+            // relative time
+            var playheadPosStart = shared.playheadPosRel;
+            var playheadPosStep = (blockLen * audio.sampleRateInverse) / config.timeLenAbs;
+            var playheadPosEnd = playheadPosStart + playheadPosStep;
+
+            // TODO edge case: no voices available but one will be at some point in this block
+
+            // check if any voices starting or ending this block
+            // TODO: deal with cell starts on loop
+            var cells = shared.rootCells;
+            var cellsIdxStarting = [];
+            var cellsIdxEnding = [];
+            var cellCurrIdx = 0;
+            while (cellCurrIdx < cells.length) {
+                var cellCurr = cells[cellCurrIdx];
+                var cellCurrStart = cellCurr.x;
+                var cellCurrEnd = cellCurr.x + cellCurr.width;
+                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd) {
+                    cellsIdxStarting.push(cellCurrIdx);
+                }
+                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd) {
+                    cellsIdxEnding.push(cellCurrIdx);
+                }
+                ++cellCurrIdx;
+            }
+
+            // assign cell starts to voices
+            var cellIdxToVoiceIdx = audio.synthCellIdxToVoiceIdx;
+            var voicesIdxAvailable = audio.synthVoicesIdxAvailable;
+            while (cellsIdxStarting.length > 0 && voicesIdxAvailable.length > 0) {
+                cellIdxToVoiceIdx[cellsIdxStarting.pop()] = voicesIdxAvailable.pop();
+            }
+
+            // render voices
+            var synthVoices = audio.synthVoices;
+            var freqMin = config.freqMin;
+            var freqMaxRat = config.freqMaxRat;
+            _.each(cellIdxToVoiceIdx, function (value, key) {
+                // calculate sine waves for each active voice
+                var cell = cells[key];
+                var voice = synthVoices[value];
+                var freqHz = freqMin * Math.pow(freqMaxRat, 1.0 - (cell.y + cell.height));
+                var freqRel = freqHz * sampleRateInverse;
+
+                for (var sample = 0; sample < blockLen; ++sample) {
+                    block0[sample] = freqRel;
+                }
+                voice.perform(block);
+
+                // calculate envelope
+
+                // apply envelope
+
+                // add to sum
+                for (var sample = 0; sample < blockLen; ++sample) {
+                    block1[sample] += block0[sample];
+                }
+            });
 
             for (var sample = 0; sample < blockLen; ++sample) {
-                bufferCh[sample] = 0.0;
+                block1[sample] *= gain;
+            }
+
+            // release cell ends from voices
+            while (cellsIdxEnding.length > 0) {
+                var cellIdx = cellsIdxEnding.pop();
+                if (cellIdx in cellIdxToVoiceIdx) {
+                    var voiceIdx = cellIdxToVoiceIdx[cellIdx];
+                    delete cellIdxToVoiceIdx[cellIdx];
+                    voicesIdxAvailable.push(voiceIdx);
+                    synthVoices[voiceIdx].phaseReset();
+                }
+            }
+
+            // increment playhead
+            shared.playheadPosRel = playheadPosEnd;
+        }
+
+        // copy our mono synth to other channels
+        for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
+            var blockOutCh = blockOut.getChannelData(channel);
+            for (var sample = 0; sample < blockLen; ++sample) {
+                blockOutCh[sample] = block1[sample];
             }
         }
 
-        // return if stopped
-        if (shared.playheadState === PlayheadStateEnum.STOPPED) {
-            return;
+        // stop or loop
+        if (shared.playheadState === PlayheadStateEnum.PLAYING) {
+            if (shared.playheadPosRel >= 1.0) {
+                shared.playheadState = PlayheadStateEnum.STOPPED;
+                shared.playheadPosRel = 0.0;
+            }
         }
-
-        switch (shared.playheadState) {
-            case PlayheadStateEnum.STOPPED:
-                break;
-            case PlayheadStateEnum.PLAYING:
-                shared.playheadPosRel += audio.playheadPosRelStep;
-                if (shared.playheadPosRel >= 1.0) {
-                    shared.playheadState = PlayheadStateEnum.STOPPED;
-                }
-                break;
-            case PlayheadStateEnum.LOOPING:
-                shared.playheadPosRel += audio.playheadPosRelStep;
-                while (shared.playheadPosRel >= 1.0) {
-                    shared.playheadPosRel -= 1.0;
-                }
-                break;
-            default:
-                break;
+        else if (shared.playheadState === PlayheadStateEnum.LOOPING) {
+            while (shared.playheadPosRel >= 1.0) {
+                shared.playheadPosRel -= 1.0;
+            }
         }
 	};
 
@@ -216,8 +344,6 @@ window.justree = window.justree || {};
 		video.viewportHeight = -1;
 		video.canvasWidth = -1;
 		video.canvasHeight = -1;
-		video.root = null;
-		video.grid = [];
 	};
 	video.callbackWindowResize = function () {
 		var viewportWidth = $(window).width();
@@ -243,10 +369,10 @@ window.justree = window.justree || {};
         ctx.clearRect(0, 0, width, height);
 
         // draw treemap
-		for (var i = 0; i < shared.rootGrid.length; ++i) {
-			var region = shared.rootGrid[i];
-			ctx.fillStyle = region[5];
-			ctx.fillRect(region[1] * width, region[2] * height, region[3] * width, region[4] * height);
+		for (var i = 0; i < shared.rootCells.length; ++i) {
+			var cell = shared.rootCells[i];
+			ctx.fillStyle = cell.rgbString;
+			ctx.fillRect(cell.x * width, cell.y * height, cell.width * width, cell.height * height);
 		}
 
         // draw playback line
@@ -267,18 +393,19 @@ window.justree = window.justree || {};
 		video.init('justree-ui');
 		
 		// generate tree
-		var root = treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
+		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.rootSet(root);
 
         // DOM callbacks
 		//$('body').css({'overflow': 'hidden'});
-        $('#ui #play').on('click', ui.callbackPlayClick);
-        $('#ui #loop').on('click', ui.callbackLoopClick);
-        $('#ui #stop').on('click', ui.callbackStopClick);
+        $('#ui #playback #play').on('click', ui.callbackPlayClick);
+        $('#ui #playback #loop').on('click', ui.callbackLoopClick);
+        $('#ui #playback #stop').on('click', ui.callbackStopClick);
+        ui.hookParamToSlider(audio.gainParam, '#ui #playback #gain');
 		$(window).resize(video.callbackWindowResize);
 		window.requestAnimationFrame(video.animate);
 		video.callbackWindowResize();
 	};
 	$(document).ready(callbackDomReady);
 
-})(window.jQuery, window.justree);
+})(window.jQuery, window._, window.justree);

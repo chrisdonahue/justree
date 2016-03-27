@@ -16,13 +16,12 @@ window.justree = window.justree || {};
         switch(type) {
             case 'sine':
                 for (var i = 0; i < tabLen; i++) {
-                    tab[i] = Math.sin(2.0 * Math.PI * (i / length));
+                    tab[i] = Math.sin(2.0 * Math.PI * (i / tabLen));
                 }
                 break;
             default:
                 throw 'dsp.tabgenerate: Invalid table type (' + String(type) + ') specified.';
         }
-        return tab;
     };
 
     dsp.envGenerate = function (tab, valStart, segments) {
@@ -55,8 +54,6 @@ window.justree = window.justree || {};
             }
             valCurr = segmentVal;
         }
-
-        return tab;
     };
 
     var AudioBuffer = dsp.AudioBuffer = ObjectBase.extend({
@@ -75,16 +72,24 @@ window.justree = window.justree || {};
 
             return this.buffer[channelNum];
         },
+        channelSet: function (channelNum, channel) {
+            if (channelNum < 0 || channelNum >= this.channelsNum) {
+                throw 'AudioBuffer.channelGet: Requested invalid channel number (' + channelNum + ').';
+            }
+
+            this.buffer[channelNum] = channel;
+        },
         clear: function () {
-            for (var channel = 0; channel < channelsNum; ++channel) {
-                var channelBuffer = this.channelGet(channelNum);
-                for (var sample = 0; sample < samplesNum; ++sample) {
+            for (var channel = 0; channel < this.channelsNum; ++channel) {
+                var channelBuffer = this.channelGet(channel);
+                for (var sample = 0; sample < this.samplesNum; ++sample) {
                     channelBuffer[sample] = 0.0;
                 }
             }
         }
     });
 
+    // abstract base class
     var ObjectDsp = ObjectBase.extend({
         constructor: function () {},
         prepare: function (sampleRate, blockSize) {
@@ -93,41 +98,64 @@ window.justree = window.justree || {};
             this.sampleRateInverse = sampleRateInverse;
             this.blockSizeInverse = blockSizeInverse;
         },
-        perform: function (block) {
-            console.log(this);
-            console.log(typeof(this));
-            throw 'ObjectDsp.perform: Must be overriden.'
-        },
+        perform: abstract(ObjectDsp, function (block) {}),
         release: function () {}
     });
 
-    var CycTabRead4 = dsp.CycTabRead4 = ObjectDsp.extend({
+    // abstract base class
+    var TabRead = dsp.TabRead = ObjectDsp.extend({
         constructor: function (tab) {
             ObjectDsp.prototype.constructor.call(this);
             this.tab = tab !== undefined ? tab : null;
             this.tabLen = this.tab === null ? -1 : tab.length;
             this.tabMask = this.tabLen - 1;
-            this.tabPhase = 0.0;
         },
         tabSet: function (tab) {
             this.tab = tab;
             this.tabLen = this.tab.len;
             this.tabMask = this.tabLen - 1;
+        },
+        prepare: function (sampleRate, blockSize) {
+            ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
+            if (this.tab === null) {
+                throw 'TabRead.prepare: tabSet must be called first.'
+            }
+        }
+    });
+
+    var TabRead2 = dsp.TabRead2 = TabRead.extend({
+        constructor: function (tab) {
+            TabRead.prototype.constructor.call(this, tab);
+            this.tabPhase = 0.0;
+        },
+        tabSet: function (tab) {
+            TabRead.prototype.tabSet.call(this, tab);
             this.tabPhase = 0.0;
         },
         phaseReset: function () {
             this.tabPhase = 0.0;
         },
-        prepare: function (sampleRate, blockSize) {
-            ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
-            if (this.tab === null) {
-                throw 'CycTabRead4.prepare: tabSet must be called first.'
-            }
+        perform: function (block) {
+            TabRead.prototype.perform.call(this, block);
+        }
+    });
+
+    var CycTabRead4 = dsp.CycTabRead4 = TabRead.extend({
+        constructor: function (tab) {
+            TabRead.prototype.constructor.call(this, tab);
+            this.tabPhase = 0.0;
+        },
+        tabSet: function (tab) {
+            TabRead.prototype.tabSet.call(this, tab);
+            this.tabPhase = 0.0;
+        },
+        phaseReset: function () {
+            this.tabPhase = 0.0;
         },
         perform: function (block) {
-            ObjectDsp.prototype.perform.call(this, block);
-            var freq = buffer.channelGet(0);
-            var out = buffer.channelGet(0);
+            TabRead.prototype.perform.call(this, block);
+            var freq = block.channelGet(0);
+            var out = block.channelGet(0);
 
             var tabLen = this.tabLen;
             var tabMask = this.tabMask;
@@ -137,7 +165,7 @@ window.justree = window.justree || {};
             var freqCurr, phaseInc, phaseTrunc, phaseFrac, inm1, in0, inp1, inp2;
 
             for (var i = 0; i < block.samplesNum; ++i) {
-                freqCurr = frequency[i];
+                freqCurr = freq[i];
                 phaseInc = freqCurr * tabLen;
                 phaseTrunc = Math.floor(phase);
                 phaseFrac = phase - phaseTrunc;
@@ -147,7 +175,7 @@ window.justree = window.justree || {};
                 inp1 = tab[(phaseTrunc + 1) & tabMask];
                 inp2 = tab[(phaseTrunc + 2) & tabMask];
 
-                output[i] = in0 + 0.5 * phaseFrac * (inp1 - inm1 + 
+                out[i] = in0 + 0.5 * phaseFrac * (inp1 - inm1 + 
                     phaseFrac * (4.0 * inp1 + 2.0 * inm1 - 5.0 * in0 - inp2 +
                     phaseFrac * (3.0 * (in0 - inp1) - inm1 + inp2)));
 
@@ -161,7 +189,7 @@ window.justree = window.justree || {};
                 phase += tabLen;
             }
 
-            this.phase = phase;
+            this.tabPhase = phase;
         }
     });
 })(window.ObjectBase, window.justree);

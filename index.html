@@ -17,9 +17,12 @@
 		<p id="msg"></p>
 	</div>
 	<div id="ui">
-		<button id="play">Play</button>
-		<button id="loop">Loop</button>
-		<button id="stop">Stop</button>
+		<div id="playback">
+			<button id="play">Play</button>
+			<button id="loop">Loop</button>
+			<button id="stop">Stop</button>
+			<input type="range" id="gain" min="0" max="1"></input>
+		</div>
 	</div>
 	<div id="canvas">
 		<canvas id="justree-ui" width="512" height="512"></canvas>
