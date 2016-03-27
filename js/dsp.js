@@ -24,8 +24,10 @@ window.justree = window.justree || {};
         }
     };
 
-    dsp.envGenerate = function (tab, valStart, segments) {
-        var tabLen = tab.length;
+    dsp.envGenerate = function (tab, tabOffset, tabLen, valStart, segments) {
+        if (tabOffset + tabLen > tab.length) {
+            throw 'dsp.envGenerate: Table not long enough.';
+        }
 
         var segmentRelLenSum = 0.0;
         for (var i = 0; i < segments.length; ++i) {
@@ -48,7 +50,7 @@ window.justree = window.justree || {};
             var segmentVal = segments[i][1];
             var segmentInc = (segmentVal - valCurr) / segmentAbsLen;
             for (var j = 0; j < segmentAbsLen; ++j) {
-                tab[tabI] = valCurr;
+                tab[tabOffset + tabI] = valCurr;
                 valCurr += segmentInc;
                 ++tabI;
             }
@@ -91,71 +93,131 @@ window.justree = window.justree || {};
 
     // abstract base class
     var ObjectDsp = ObjectBase.extend({
-        constructor: function () {},
+        constructor: function (channelsNumIn, channelsNumOut) {
+            this.channelsNumIn = channelsNumIn;
+            this.channelsNumOut = channelsNumOut;
+        },
         prepare: function (sampleRate, blockSize) {
             this.sampleRate = sampleRate;
             this.blockSize = blockSize;
             this.sampleRateInverse = sampleRateInverse;
             this.blockSizeInverse = blockSizeInverse;
         },
-        perform: abstract(ObjectDsp, function (block) {}),
+        perform: abstract(ObjectDsp, function (block, channelOff, sampleOff, samplesNum) {}),
         release: function () {}
+    });
+
+    var RangeMapLinear = dsp.RangeMapLinear = ObjectDsp.extend({
+        constructor: function (domainMin, domainMax, domainClip, rangeMin, rangeMax, rangeClip) {
+            ObjectDsp.prototype.constructor.call(this, 1, 1);
+            this.domainMin = domainMin;
+            this.domainMax = domainMax;
+            this.domainClip = domainClip;
+            this.rangeMin = rangeMin;
+            this.rangeMax = rangeMax;
+            this.rangeClip = rangeClip;
+            this.m = (rangeMax - rangeMin) / (domainMax - domainMin);
+            this.b = (rangeMin - (domainMin * this.m));
+        },
+        perform: function (block, channelOff, sampleOff, samplesNum) {
+            ObjectDsp.prototype.perform.call(this, block, channelOff, sampleOff, samplesNum);
+
+            var domainMin = this.domainMin;
+            var domainMax = this.domainMax;
+            var domainClip = this.domainClip;
+            var m = this.m;
+            var b = this.b;
+            var rangeMin = this.rangeMin;
+            var rangeMax = this.rangeMax;
+            var rangeClip = this.rangeClip;
+
+            var blockCh = block.channelGet(channelOff);
+            for (var sample = sampleOff; sample < samplesNum; ++sample) {
+                var domainVal = blockCh[sample];
+
+                if (domainClip) {
+                    domainVal = domainVal > domainMin ? domainVal : domainMin;
+                    domainVal = domainVal < domainMax ? domainVal : domainMax;
+                }
+
+                rangeVal = domainVal * m + b;
+
+                if (rangeClip) {
+                    rangeVal = rangeVal > rangeMin ? rangeVal : rangeMin;
+                    rangeVal = rangeVal < rangeMax ? rangeVal : rangeMax;
+                }
+
+                blockCh[sample] = rangeVal;
+            }
+        }
     });
 
     // abstract base class
     var TabRead = dsp.TabRead = ObjectDsp.extend({
-        constructor: function (tab) {
+        constructor: function () {
             ObjectDsp.prototype.constructor.call(this);
+        },
+        tabSet: function (tab) {
             this.tab = tab !== undefined ? tab : null;
             this.tabLen = this.tab === null ? -1 : tab.length;
             this.tabMask = this.tabLen - 1;
         },
-        tabSet: function (tab) {
-            this.tab = tab;
-            this.tabLen = this.tab.len;
-            this.tabMask = this.tabLen - 1;
-        },
         prepare: function (sampleRate, blockSize) {
             ObjectDsp.prototype.prepare.call(this, sampleRate, blockSize);
+            
             if (this.tab === null) {
                 throw 'TabRead.prepare: tabSet must be called first.'
             }
         }
     });
 
-    var TabRead2 = dsp.TabRead2 = TabRead.extend({
-        constructor: function (tab) {
-            TabRead.prototype.constructor.call(this, tab);
-            this.tabPhase = 0.0;
+    var TabRead4 = dsp.TabRead2 = TabRead.extend({
+        constructor: function () {
+            TabRead.prototype.constructor.call(this);
         },
-        tabSet: function (tab) {
-            TabRead.prototype.tabSet.call(this, tab);
-            this.tabPhase = 0.0;
-        },
-        phaseReset: function () {
-            this.tabPhase = 0.0;
-        },
-        perform: function (block) {
-            TabRead.prototype.perform.call(this, block);
+        perform: function (block, channelOff, sampleOff, samplesNum) {
+            TabRead.prototype.perform.call(this, block, channelOff, sampleOff, samplesNum);
+
+            var tab = this.tab;
+            var tabMask = this.tabMask;
+
+            var blockCh = block.channelGet(channelOff);
+            for (var sample = sampleOff; sample < samplesNum; ++sample) {
+                var idx = blockCh[sample];
+                var idxFloor = Math.floor(idx);
+                var idxFrac = idx - idxFloor;
+
+                var a = tab[idxFloor - 1];
+                var b = tab[idxFloor];
+                var c = tab[idxFloor + 1];
+                var d = tab[idxFloor + 2];
+                var cmb = c - b;
+
+                blockCh[sample] = b + idxFrac * (
+                            cmb - 0.1666667 * (1.0 - idxFrac) * (
+                                (d - a - 3.0 * cmb) * idxFrac + (d + 2.0 * a - 3.0 * b)
+                            )
+                        );
+            }
         }
     });
 
     var CycTabRead4 = dsp.CycTabRead4 = TabRead.extend({
-        constructor: function (tab) {
-            TabRead.prototype.constructor.call(this, tab);
+        constructor: function () {
+            TabRead.prototype.constructor.call(this);
             this.tabPhase = 0.0;
         },
         tabSet: function (tab) {
             TabRead.prototype.tabSet.call(this, tab);
-            this.tabPhase = 0.0;
+            this.tabMask = this.tabLen - 1;
         },
         phaseReset: function () {
             this.tabPhase = 0.0;
         },
-        perform: function (block) {
-            TabRead.prototype.perform.call(this, block);
-            var freq = block.channelGet(0);
-            var out = block.channelGet(0);
+        perform: function (block, channelOff, sampleOff, samplesNum) {
+            TabRead.prototype.perform.call(this, block, channelOff, sampleOff, samplesNum);
+            var freq = block.channelGet(channelOff);
+            var out = block.channelGet(channelOff);
 
             var tabLen = this.tabLen;
             var tabMask = this.tabMask;

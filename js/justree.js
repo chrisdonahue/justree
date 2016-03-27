@@ -167,9 +167,11 @@ window.justree = window.justree || {};
         audio.synthVoicesIdxAvailable = [];
         audio.sineTab = dsp.allocateBufferFloat32(config.synthTabLen);
         dsp.tabGenerate(audio.sineTab, 'sine');
-        for (var voice = 0; voice < config.synthVoicesNum; ++voice) {
-            audio.synthVoices.push(new dsp.CycTabRead4(audio.sineTab));
-            audio.synthVoicesIdxAvailable.push(voice);
+        for (var voiceIdx = 0; voiceIdx < config.synthVoicesNum; ++voiceIdx) {
+            var voice = new dsp.CycTabRead4();
+            voice.tabSet(audio.sineTab);
+            audio.synthVoices.push(voice);
+            audio.synthVoicesIdxAvailable.push(voiceIdx);
         }
 
         var segments = Array()
@@ -177,7 +179,8 @@ window.justree = window.justree || {};
         segments.push(Array(1.0 - config.synthAtk - config.synthRel, 1.0));
         segments.push(Array(config.synthRel, 0.0));
         audio.envTab = dsp.allocateBufferFloat32(config.synthTabLen);
-        dsp.envGenerate(audio.envTab, 0.0, segments);
+        dsp.envGenerate(audio.envTab, 1, config.synthTabLen - 1, 0.0, segments);
+        audio.envTab[0] = 0.0;
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
