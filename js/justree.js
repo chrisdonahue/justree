@@ -63,12 +63,21 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
+    config.reverbAttenParam = {
+        'min': 0.0,
+        'max': 0.99,
+        'step': 0.01,
+        'valInit': 0.8
+    };
 
     // synth params
     config.synthTabLen = 4096;
     config.synthVoicesNum = 8;
     config.synthAtk = 0.05;
     config.synthRel = 0.25;
+    config.synthSaturationFn = function (x) {
+
+    };
 	
 	/* shared */
 	var shared = justree.shared = {};
@@ -165,7 +174,8 @@ window.justree = window.justree || {};
         audio.timeLenParam = config.timeLenParam;
         audio.freqMinParam = config.freqMinParam;
         audio.freqMaxRatParam = config.freqMaxRatParam;
-        audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam];
+        audio.reverbAttenParam = config.reverbAttenParam;
+        audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam, audio.reverbAttenParam];
         for (var i = 0; i < audio.params.length; ++i) {
             var param = audio.params[i];
             param.val = param.valInit;
@@ -203,6 +213,9 @@ window.justree = window.justree || {};
         audio.envRangeMap = new dsp.RangeMapLinear(0.0, 1.0, false, 1.0, config.synthTabLen - 2, true);
         audio.envTabRead = new dsp.TabRead2();
         audio.envTabRead.tabSet(audio.envTab);
+
+        audio.reverb = new dsp.Fdn4Reverb();
+        audio.reverb.prepare(sampleRate, blockSize);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
@@ -307,10 +320,6 @@ window.justree = window.justree || {};
                 }
             });
 
-            for (var sample = 0; sample < blockLen; ++sample) {
-                block2[sample] *= gain;
-            }
-
             // release cell ends from voices
             while (cellsIdxEnding.length > 0) {
                 var cellIdx = cellsIdxEnding.pop();
@@ -324,13 +333,26 @@ window.justree = window.justree || {};
 
             // increment playhead
             shared.playheadPosRel = playheadPosEnd;
+
+            // apply reverb
+            var reverbAtten = audio.reverbAttenParam.val;
+            for (var sample = 0; sample < blockLen; ++sample) {
+                block0[sample] = block2[sample];
+                block1[sample] = reverbAtten;
+            }
+            audio.reverb.perform(block, 0, 0, blockLen);
+
+            // apply gain
+            for (var sample = 0; sample < blockLen; ++sample) {
+                block2[sample] *= gain;
+            }
         }
 
-        // copy our mono synth to other channels
+        // copy our mono synth to output block
         for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
             var blockOutCh = blockOut.getChannelData(channel);
             for (var sample = 0; sample < blockLen; ++sample) {
-                blockOutCh[sample] = block2[sample];
+                blockOutCh[sample] = block0[sample];
             }
         }
 
@@ -450,6 +472,7 @@ window.justree = window.justree || {};
         ui.hookParamToSlider(audio.timeLenParam, '#ui #synthesis #time-len');
         ui.hookParamToSlider(audio.freqMinParam, '#ui #synthesis #freq-min');
         ui.hookParamToSlider(audio.freqMaxRatParam, '#ui #synthesis #freq-max-rat');
+        ui.hookParamToSlider(audio.reverbAttenParam, '#ui #effects #reverb-atten');
 		$(window).resize(video.callbackWindowResize);
 		window.requestAnimationFrame(video.animate);
 		video.callbackWindowResize();

@@ -152,6 +152,106 @@ window.justree = window.justree || {};
         }
     });
 
+    var Fdn4Reverb = dsp.Fdn4Reverb = ObjectDsp.extend({
+        constructor: function () {
+            ObjectDsp.prototype.constructor.call(this, 2, 2);
+        },
+        prepare: function (sampleRate, blockSize) {
+            ObjectDsp.prototype.constructor.call(this);
+            this.delLen = Math.floor(1.0 * sampleRate);
+            this.delBuffer = new AudioBuffer(4, this.delLen);
+            this.delWriteIdx = 0;
+            this.delAmt = Math.floor(0.01 * sampleRate);
+            this.delBuffer.clear();
+        },
+        perform: function (block, channelOff, sampleOff, samplesNum) {
+            ObjectDsp.prototype.perform.call(this, block, channelOff, sampleOff, samplesNum);
+
+            var blockIn = block.channelGet(channelOff);
+            var blockAtten = block.channelGet(channelOff + 1);
+            var blockOut = block.channelGet(channelOff);
+
+            var delLen = this.delLen;
+            var delBuffer = this.delBuffer;
+            var del0 = delBuffer.channelGet(0);
+            var del1 = delBuffer.channelGet(1);
+            var del2 = delBuffer.channelGet(2);
+            var del3 = delBuffer.channelGet(3);
+            var delAmt = this.delAmt;
+            var delWriteIdx = this.delWriteIdx;
+            var delReadIdx = delWriteIdx - delAmt;
+
+            for (var sample = sampleOff; sample < samplesNum; ++sample) {
+                // process input
+                var input = blockIn[sample];
+                var atten = blockAtten[sample];
+
+                // fix delay indices
+                while (delReadIdx < 0) {
+                    delReadIdx += delLen;
+                }
+                while (delReadIdx >= delLen) {
+                    delReadIdx -= delLen;
+                }
+                while (delWriteIdx < 0) {
+                    delWriteIdx += delLen;
+                }
+                while (delWriteIdx >= delLen) {
+                    delWriteIdx -= delLen;
+                }
+
+                // apply high pass filter to input
+                var inputHp = input;
+
+                // read delay lines and attenuate
+                var del0Val = del0[delReadIdx] * atten;
+                var del1Val = del1[delReadIdx] * atten;
+                var del2Val = del2[delReadIdx] * atten;
+                var del3Val = del3[delReadIdx] * atten;
+
+                if (sample === 0) {
+                    console.log(del0Val);
+                    console.log(del1Val);
+                }
+
+                // mixing stage a
+                var a0Val = del0Val - del1Val;
+                var a1Val = del0Val + del1Val;
+                var a2Val = del2Val - del3Val;
+                var a3Val = del2Val + del3Val;
+
+                // mixing stage b
+                var b0Val = a0Val - a3Val + inputHp;
+                var b1Val = a1Val + a3Val + inputHp;
+                var b2Val = a0Val + a2Val + inputHp;
+                var b3Val = a1Val - a3Val + inputHp;
+
+                // apply low pass filter to output
+                var c0Val = b0Val;
+                var c1Val = b1Val;
+                var c2Val = b2Val;
+                var c3Val = b3Val;
+
+                // clip [-10, 10]
+
+                // write delay lines
+                del0[delWriteIdx] = c0Val;
+                del1[delWriteIdx] = c1Val;
+                del2[delWriteIdx] = c2Val;
+                del3[delWriteIdx] = c3Val;
+
+                // increment pointers
+                ++delReadIdx;
+                ++delWriteIdx;
+
+                // output
+                blockOut[sample] = c0Val;
+            }
+
+            this.delWriteIdx = delWriteIdx;
+        }
+    });
+
     // abstract base class
     var TabRead = dsp.TabRead = ObjectDsp.extend({
         constructor: function () {
