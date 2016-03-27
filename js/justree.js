@@ -161,7 +161,7 @@ window.justree = window.justree || {};
 		var blockSizeInverse = audio.blockSizeInverse = 1.0 / blockSize;
 		var scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
 
-        audio.synthBuffer = new dsp.AudioBuffer(2, blockSize);
+        audio.synthBuffer = new dsp.AudioBuffer(3, blockSize);
         audio.synthVoices = [];
         audio.synthCellIdxToVoiceIdx = {};
         audio.synthVoicesIdxAvailable = [];
@@ -179,8 +179,10 @@ window.justree = window.justree || {};
         segments.push(Array(1.0 - config.synthAtk - config.synthRel, 1.0));
         segments.push(Array(config.synthRel, 0.0));
         audio.envTab = dsp.allocateBufferFloat32(config.synthTabLen);
-        dsp.envGenerate(audio.envTab, 1, config.synthTabLen - 1, 0.0, segments);
+        dsp.envGenerate(audio.envTab, 1, config.synthTabLen - 2, 0.0, segments);
         audio.envTab[0] = 0.0;
+
+        audio.envRangeMap = new dsp.RangeMapLinear(0.0, 1.0, false, 1.0, config.synthTabLen - 2, false);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
@@ -195,6 +197,7 @@ window.justree = window.justree || {};
         var block = audio.synthBuffer;
         var block0 = block.channelGet(0);
         var block1 = block.channelGet(1);
+        var block2 = block.channelGet(2);
 
         // clear buffer
         audio.synthBuffer.clear();
@@ -208,8 +211,9 @@ window.justree = window.justree || {};
 
             // relative time
             var playheadPosStart = shared.playheadPosRel;
-            var playheadPosStep = (blockLen * audio.sampleRateInverse) / config.timeLenAbs;
-            var playheadPosEnd = playheadPosStart + playheadPosStep;
+            var playheadPosStep = 1.0 / (sampleRate * config.timeLenAbs);
+            var playheadPosStepBlock = playheadPosStep * blockLen;
+            var playheadPosEnd = playheadPosStart + playheadPosStepBlock;
 
             // TODO edge case: no voices available but one will be at some point in this block
 
@@ -243,6 +247,7 @@ window.justree = window.justree || {};
             var synthVoices = audio.synthVoices;
             var freqMin = config.freqMin;
             var freqMaxRat = config.freqMaxRat;
+            var envRangeMap = audio.envRangeMap;
             _.each(cellIdxToVoiceIdx, function (value, key) {
                 // calculate sine waves for each active voice
                 var cell = cells[key];
@@ -253,15 +258,23 @@ window.justree = window.justree || {};
                 for (var sample = 0; sample < blockLen; ++sample) {
                     block0[sample] = freqRel;
                 }
-                voice.perform(block);
+                voice.perform(block, 0, 0, blockLen);
 
-                // calculate envelope
-
-                // apply envelope
-
-                // add to sum
+                // calculate envelope phasor
+                var cellWidthInv = 1.0 / cell.width;
+                var cellFrac = (playheadPosStart - cell.x) * cellWidthInv;
+                var cellFracStep = playheadPosStep * cellWidthInv;
                 for (var sample = 0; sample < blockLen; ++sample) {
-                    block1[sample] += block0[sample];
+                    block1[sample] = cellFrac;
+                    cellFrac += cellFracStep;
+                }
+
+                // map to table range
+                envRangeMap.perform(block, 1, 0, blockLen);
+
+                // add enveloped sinusoid to sum
+                for (var sample = 0; sample < blockLen; ++sample) {
+                    block2[sample] += block0[sample] * block1[sample];
                 }
             });
 
