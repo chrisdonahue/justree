@@ -278,4 +278,5 @@ window.justree = window.justree || {};
             this.tabPhase = phase;
         }
     });
+
 })(window.ObjectBase, window.justree);

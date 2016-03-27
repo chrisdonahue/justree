@@ -39,14 +39,29 @@ window.justree = window.justree || {};
 
     // audio params
     config.blockSize = 1024;
-    config.freqMin = 220.0;
-    config.freqMaxRat = 4.0;
-    config.timeLenAbs = 1.0;
     config.gainParam = {
         'min': 0.0,
         'max': 1.0,
         'step': 0.01,
         'valInit': 0.5
+    };
+    config.timeLenParam = {
+        'min': 1.0,
+        'max': 10.0,
+        'step': 0.1,
+        'valInit': 2.0
+    };
+    config.freqMinParam = {
+        'min': 20.0,
+        'max': 2020.0,
+        'step': 10.0,
+        'valInit': 220.0
+    };
+    config.freqMaxRatParam = {
+        'min': 1.0,
+        'max': 8.0,
+        'step': 1.0,
+        'valInit': 2.0
     };
 
     // synth params
@@ -147,7 +162,10 @@ window.justree = window.justree || {};
 	var audio = justree.audio = {};
 	audio.init = function () {
         audio.gainParam = config.gainParam;
-        audio.params = [audio.gainParam];
+        audio.timeLenParam = config.timeLenParam;
+        audio.freqMinParam = config.freqMinParam;
+        audio.freqMaxRatParam = config.freqMaxRatParam;
+        audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam];
         for (var i = 0; i < audio.params.length; ++i) {
             var param = audio.params[i];
             param.val = param.valInit;
@@ -213,7 +231,7 @@ window.justree = window.justree || {};
 
             // relative time
             var playheadPosStart = shared.playheadPosRel;
-            var playheadPosStep = 1.0 / (sampleRate * config.timeLenAbs);
+            var playheadPosStep = 1.0 / (sampleRate * audio.timeLenParam.val);
             var playheadPosStepBlock = playheadPosStep * blockLen;
             var playheadPosEnd = playheadPosStart + playheadPosStepBlock;
             //console.log(String(playheadPosStart) + '->' + String(playheadPosEnd));
@@ -252,8 +270,8 @@ window.justree = window.justree || {};
 
             // render voices
             var synthVoices = audio.synthVoices;
-            var freqMin = config.freqMin;
-            var freqMaxRat = config.freqMaxRat;
+            var freqMin = audio.freqMinParam.val;
+            var freqMaxRat = audio.freqMaxRatParam.val;
             var envRangeMap = audio.envRangeMap;
             var envTabRead = audio.envTabRead;
             _.each(cellIdxToVoiceIdx, function (value, key) {
@@ -429,6 +447,9 @@ window.justree = window.justree || {};
         $('#ui #playback #loop').on('click', ui.callbackLoopClick);
         $('#ui #playback #stop').on('click', ui.callbackStopClick);
         ui.hookParamToSlider(audio.gainParam, '#ui #playback #gain');
+        ui.hookParamToSlider(audio.timeLenParam, '#ui #synthesis #time-len');
+        ui.hookParamToSlider(audio.freqMinParam, '#ui #synthesis #freq-min');
+        ui.hookParamToSlider(audio.freqMaxRatParam, '#ui #synthesis #freq-max-rat');
 		$(window).resize(video.callbackWindowResize);
 		window.requestAnimationFrame(video.animate);
 		video.callbackWindowResize();
