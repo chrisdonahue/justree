@@ -49,7 +49,6 @@ window.justree = window.justree || {};
             subtree1.parent = null;
         }
 
-        // TODO: finish lol
     };
 	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
 		//var dim = Math.floor(Math.random() * nDims);
@@ -75,6 +74,12 @@ window.justree = window.justree || {};
 
 		return node;
 	};
+
+	var treeParse = tree.treeParse = function (treeStr) {
+		// TODO
+	};
+
+	/*
 	var treeFull = tree.treeFull = function (depth, depthCurr) {
 		var on = Math.random() < pOn;
 		var weight = config.ratios[Math.floor(Math.random() * config.ratiosLen)];
@@ -91,4 +96,5 @@ window.justree = window.justree || {};
 
 		return node;
 	};
+	*/
 })(window.ObjectBase, window.justree);

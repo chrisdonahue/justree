@@ -27,7 +27,7 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 
     // tree params
-	config.depthMin = 3;
+	config.depthMin = 5;
 	config.depthMax = 8;
 	config.nDims = 2;
 	config.pTerm = 0.5;
@@ -41,7 +41,7 @@ window.justree = window.justree || {};
     config.blockSize = 1024;
     config.freqMin = 220.0;
     config.freqMaxRat = 4.0;
-    config.timeLenAbs = 10.0;
+    config.timeLenAbs = 1.0;
     config.gainParam = {
         'min': 0.0,
         'max': 1.0,
@@ -179,10 +179,12 @@ window.justree = window.justree || {};
         segments.push(Array(1.0 - config.synthAtk - config.synthRel, 1.0));
         segments.push(Array(config.synthRel, 0.0));
         audio.envTab = dsp.allocateBufferFloat32(config.synthTabLen);
-        dsp.envGenerate(audio.envTab, 1, config.synthTabLen - 2, 0.0, segments);
-        audio.envTab[0] = 0.0;
+        dsp.envGenerate(audio.envTab, 0, config.synthTabLen - 1, 0.0, segments);
+        audio.envTab[config.synthTabLen - 1] = 0.0;
 
-        audio.envRangeMap = new dsp.RangeMapLinear(0.0, 1.0, false, 1.0, config.synthTabLen - 2, false);
+        audio.envRangeMap = new dsp.RangeMapLinear(0.0, 1.0, false, 1.0, config.synthTabLen - 2, true);
+        audio.envTabRead = new dsp.TabRead2();
+        audio.envTabRead.tabSet(audio.envTab);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
@@ -214,6 +216,7 @@ window.justree = window.justree || {};
             var playheadPosStep = 1.0 / (sampleRate * config.timeLenAbs);
             var playheadPosStepBlock = playheadPosStep * blockLen;
             var playheadPosEnd = playheadPosStart + playheadPosStepBlock;
+            //console.log(String(playheadPosStart) + '->' + String(playheadPosEnd));
 
             // TODO edge case: no voices available but one will be at some point in this block
 
@@ -236,6 +239,10 @@ window.justree = window.justree || {};
                 ++cellCurrIdx;
             }
 
+            if (cellsIdxStarting.length > 0 || cellsIdxEnding.length > 0) {
+                //console.log(String(cellsIdxStarting.length) + ', ' + String(cellsIdxEnding.length));
+            }
+
             // assign cell starts to voices
             var cellIdxToVoiceIdx = audio.synthCellIdxToVoiceIdx;
             var voicesIdxAvailable = audio.synthVoicesIdxAvailable;
@@ -248,6 +255,7 @@ window.justree = window.justree || {};
             var freqMin = config.freqMin;
             var freqMaxRat = config.freqMaxRat;
             var envRangeMap = audio.envRangeMap;
+            var envTabRead = audio.envTabRead;
             _.each(cellIdxToVoiceIdx, function (value, key) {
                 // calculate sine waves for each active voice
                 var cell = cells[key];
@@ -266,11 +274,14 @@ window.justree = window.justree || {};
                 var cellFracStep = playheadPosStep * cellWidthInv;
                 for (var sample = 0; sample < blockLen; ++sample) {
                     block1[sample] = cellFrac;
-                    cellFrac += cellFracStep;
-                }
+                    cellFrac += cellFracStep
+;                }
 
                 // map to table range
                 envRangeMap.perform(block, 1, 0, blockLen);
+
+                // generate envelope
+                envTabRead.perform(block, 1, 0, blockLen);
 
                 // add enveloped sinusoid to sum
                 for (var sample = 0; sample < blockLen; ++sample) {
@@ -279,7 +290,7 @@ window.justree = window.justree || {};
             });
 
             for (var sample = 0; sample < blockLen; ++sample) {
-                block1[sample] *= gain;
+                block2[sample] *= gain;
             }
 
             // release cell ends from voices
@@ -301,7 +312,7 @@ window.justree = window.justree || {};
         for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
             var blockOutCh = blockOut.getChannelData(channel);
             for (var sample = 0; sample < blockLen; ++sample) {
-                blockOutCh[sample] = block1[sample];
+                blockOutCh[sample] = block2[sample];
             }
         }
 

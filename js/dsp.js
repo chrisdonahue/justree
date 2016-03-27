@@ -171,7 +171,31 @@ window.justree = window.justree || {};
         }
     });
 
-    var TabRead4 = dsp.TabRead2 = TabRead.extend({
+    var TabRead2 = dsp.TabRead2 = TabRead.extend({
+        constructor: function () {
+            TabRead.prototype.constructor.call(this);
+        },
+        perform: function (block, channelOff, sampleOff, samplesNum) {
+            TabRead.prototype.perform.call(this, block, channelOff, sampleOff, samplesNum);
+
+            var tab = this.tab;
+            var tabMask = this.tabMask;
+
+            var blockCh = block.channelGet(channelOff);
+            for (var sample = sampleOff; sample < samplesNum; ++sample) {
+                var idx = blockCh[sample];
+                var idxFloor = Math.floor(idx);
+                var idxFrac = idx - idxFloor;
+
+                var a = tab[idxFloor];
+                var b = tab[idxFloor + 1];
+
+                blockCh[sample] = (1.0 - idxFrac) * a + idxFrac * b;
+            }
+        }
+    })
+
+    var TabRead4 = dsp.TabRead4 = TabRead.extend({
         constructor: function () {
             TabRead.prototype.constructor.call(this);
         },
