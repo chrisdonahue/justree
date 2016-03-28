@@ -28,12 +28,12 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 
     // tree params
-	config.depthMin = 5;
-	config.depthMax = 8;
+	config.depthMin = 4;
+	config.depthMax = 7;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.5;
-    config.ratios = [1];
+    config.ratios = [1, 2, 3];
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
     config.ratiosLen = config.ratios.length;
@@ -64,12 +64,20 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
+    config.reverbWetDryParam = {
+        'min': 0.0,
+        'max': 1.0
+    };
 
     // synth params
     config.synthTabLen = 4096;
     config.synthVoicesNum = 8;
     config.synthAtk = 0.05;
     config.synthRel = 0.25;
+
+    // fx params
+    config.reverbLen = 1.5;
+    config.reverbDcy = 10.0;
 	
 	/* shared */
 	var shared = justree.shared = {};
@@ -210,8 +218,22 @@ window.justree = window.justree || {};
         saturate.tablify(saturate.arctan(1.0, 2.0 / Math.PI), audio.saturateTab, -10.0, 10.0, 1, 2, -1.0, 1.0);
         audio.saturateTabRead.tabSet(audio.saturateTab);
 
+        var reverbLen = Math.floor(sampleRate * config.reverbLen);
+        var reverbDcy = config.reverbDcy;
+        var impulse = audioCtx.createBuffer(2, reverbLen, sampleRate);
+        var impulseL = impulse.getChannelData(0);
+        var impulseR = impulse.getChannelData(1);
+        for (var i = 0; i < reverbLen; ++i) {
+            impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, reverbDcy);
+            impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, reverbDcy);
+        }
+        var reverbNode = audioCtx.createConvolver();
+        reverbNode.buffer = impulse;
+
 		scriptNode.onaudioprocess = audio.callback;
-		scriptNode.connect(audioCtx.destination);
+        //scriptNode.connect(audioCtx.destination);
+		scriptNode.connect(reverbNode);
+        reverbNode.connect(audioCtx.destination);
 	};
 	audio.callback = function (event) {
         var sampleRate = audio.sampleRate;
