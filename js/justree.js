@@ -14,6 +14,7 @@ window.justree = window.justree || {};
     /* imports */
     var dsp = justree.dsp;
     var tree = justree.tree;
+    var saturate = justree.saturate;
 
 	/* defines */
 	var defines = justree.defines = {};
@@ -199,10 +200,15 @@ window.justree = window.justree || {};
         audio.envTab = dsp.allocateBufferFloat32(config.synthTabLen);
         dsp.envGenerate(audio.envTab, 0, config.synthTabLen - 1, 0.0, segments);
         audio.envTab[config.synthTabLen - 1] = 0.0;
-
         audio.envRangeMap = new dsp.RangeMapLinear(0.0, 1.0, false, 1.0, config.synthTabLen - 2, true);
         audio.envTabRead = new dsp.TabRead2();
         audio.envTabRead.tabSet(audio.envTab);
+
+        audio.saturateRangeMap = new dsp.RangeMapLinear(-10.0, 10.0, true, 1.0, config.synthTabLen - 3, false);
+        audio.saturateTabRead = new dsp.TabRead4();
+        audio.saturateTab = dsp.allocateBufferFloat32(config.synthTabLen);
+        saturate.tablify(saturate.arctan(1.0, 2.0 / Math.PI), audio.saturateTab, -10.0, 10.0, 1, 2, -1.0, 1.0);
+        audio.saturateTabRead.tabSet(audio.saturateTab);
 
 		scriptNode.onaudioprocess = audio.callback;
 		scriptNode.connect(audioCtx.destination);
@@ -307,10 +313,6 @@ window.justree = window.justree || {};
                 }
             });
 
-            for (var sample = 0; sample < blockLen; ++sample) {
-                block2[sample] *= gain;
-            }
-
             // release cell ends from voices
             while (cellsIdxEnding.length > 0) {
                 var cellIdx = cellsIdxEnding.pop();
@@ -324,6 +326,15 @@ window.justree = window.justree || {};
 
             // increment playhead
             shared.playheadPosRel = playheadPosEnd;
+
+            // apply gain
+            for (var sample = 0; sample < blockLen; ++sample) {
+                block2[sample] *= gain;
+            }
+
+            // saturate (soft clip)
+            audio.saturateRangeMap.perform(block, 2, 0, blockLen);
+            audio.saturateTabRead.perform(block, 2, 0, blockLen);
         }
 
         // copy our mono synth to other channels
