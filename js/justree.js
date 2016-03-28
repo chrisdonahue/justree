@@ -64,10 +64,7 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
-    config.reverbWetDryParam = {
-        'min': 0.0,
-        'max': 1.0
-    };
+    config.reverbOn = false;
 
     // synth params
     config.synthTabLen = 4096;
@@ -156,6 +153,17 @@ window.justree = window.justree || {};
         shared.playheadState = PlayheadStateEnum.STOPPED;
         shared.playheadPosRel = 0.0;
     };
+    ui.callbackReverbToggle = function () {
+        var $checked = $('#ui #effects input[name=reverb]:checked');
+        if ($checked.val() === 'on') {
+            audio.scriptNode.connect(audio.reverbNode);
+            audio.reverbNode.connect(audio.audioCtx.destination);
+        }
+        else {
+            audio.reverbNode.disconnect();
+            audio.scriptNode.connect(audio.audioCtx.destination);
+        }
+    };
     ui.hookParamToSlider = function (param, sliderSelector) {
         var $slider = $(sliderSelector);
         $slider.attr('min', param['min']);
@@ -186,7 +194,7 @@ window.justree = window.justree || {};
 		var sampleRateInverse = audio.sampleRateInverse = 1.0 / sampleRate;
 		var blockSize = audio.blockSize = config.blockSize;
 		var blockSizeInverse = audio.blockSizeInverse = 1.0 / blockSize;
-		var scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
+		var scriptNode = audio.scriptNode = audioCtx.createScriptProcessor(blockSize, 0, 1);
 
         audio.synthBuffer = new dsp.AudioBuffer(3, blockSize);
         audio.synthVoices = [];
@@ -218,6 +226,7 @@ window.justree = window.justree || {};
         saturate.tablify(saturate.arctan(1.0, 2.0 / Math.PI), audio.saturateTab, -10.0, 10.0, 1, 2, -1.0, 1.0);
         audio.saturateTabRead.tabSet(audio.saturateTab);
 
+        // https://github.com/web-audio-components/simple-reverb/blob/master/index.js
         var reverbLen = Math.floor(sampleRate * config.reverbLen);
         var reverbDcy = config.reverbDcy;
         var impulse = audioCtx.createBuffer(2, reverbLen, sampleRate);
@@ -227,7 +236,7 @@ window.justree = window.justree || {};
             impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, reverbDcy);
             impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, reverbDcy);
         }
-        var reverbNode = audioCtx.createConvolver();
+        var reverbNode = audio.reverbNode = audioCtx.createConvolver();
         reverbNode.buffer = impulse;
 
 		scriptNode.onaudioprocess = audio.callback;
@@ -483,6 +492,9 @@ window.justree = window.justree || {};
         ui.hookParamToSlider(audio.timeLenParam, '#ui #synthesis #time-len');
         ui.hookParamToSlider(audio.freqMinParam, '#ui #synthesis #freq-min');
         ui.hookParamToSlider(audio.freqMaxRatParam, '#ui #synthesis #freq-max-rat');
+        $('#ui #effects input[name=reverb]').on('change', ui.callbackReverbToggle);
+        ui.callbackReverbToggle();
+
 		$(window).resize(video.callbackWindowResize);
 		window.requestAnimationFrame(video.animate);
 		video.callbackWindowResize();
