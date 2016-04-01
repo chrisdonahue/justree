@@ -288,8 +288,8 @@ window.justree = window.justree || {};
         audio.synthBuffer.clear();
 
         if (shared.playheadState !== PlayheadStateEnum.STOPPED &&
-            shared.rootCells !== null &&
-            shared.rootCells.length > 0) {
+            shared.leafCellsSorted !== null &&
+            shared.leafCellsSorted.length > 0) {
             // calculate/dezipper (TODO) UI parameters
             var gain = audio.gainParam.val;
             gain = gain * gain * gain * gain;
@@ -305,7 +305,7 @@ window.justree = window.justree || {};
 
             // check if any voices starting or ending this block
             // TODO: deal with cell starts on loop
-            var cells = shared.rootCells;
+            var cells = shared.leafCellsSorted;
             var cellsIdxStarting = [];
             var cellsIdxEnding = [];
             var cellCurrIdx = 0;
