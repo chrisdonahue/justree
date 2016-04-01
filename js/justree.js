@@ -529,14 +529,15 @@ window.justree = window.justree || {};
             var children = shared.nodeSelected.childrenGet();
             if (navChildStack.length > 0) {
                 var navChild = navChildStack.pop();
+                var navChildValid = null;
                 for (var i = 0; i < navChildStack; ++i) {
                     var child = children[i];
                     if (child === navChild) {
-                        navChild = child;
+                        navChildValid = child;
                         break;
                     }
                 }
-                if (navChild === null) {
+                if (navChildValid === null) {
                     navChildStack = [];
                 }
                 else {
