@@ -522,6 +522,7 @@ window.justree = window.justree || {};
                     }
                 }
             }
+            navChildStack = [];
         }
     };
     var callbackNavChildClick = function (event) {
@@ -529,20 +530,20 @@ window.justree = window.justree || {};
             var children = shared.nodeSelected.childrenGet();
             if (navChildStack.length > 0) {
                 var navChild = navChildStack.pop();
-                var navChildValid = null;
-                for (var i = 0; i < navChildStack; ++i) {
+                var navChildValid = false;
+                for (var i = 0; i < children.length; ++i) {
                     var child = children[i];
                     if (child === navChild) {
-                        navChildValid = child;
+                        navChildValid = true;
                         break;
                     }
                 }
-                if (navChildValid === null) {
-                    navChildStack = [];
-                }
-                else {
+                if (navChildValid) {
                     shared.nodeSelectedSet(navChild);
                     return;
+                }
+                else {
+                    navChildStack = [];
                 }
             }
 
