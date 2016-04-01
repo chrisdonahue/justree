@@ -73,4 +73,17 @@
 		return child;
 	};
 
+	window.mouseToTouchEvent = function (callback) {
+		return function(event) {
+			event.consumed = false;
+			event.changedTouches = [];
+			event.changedTouches.push({
+				clientX: event.offsetX || -1,
+				clientY: event.offsetY || -1,
+				identifier: 'mouse'
+			});
+			callback(event);
+		};
+	}
+
 })();

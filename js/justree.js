@@ -118,6 +118,7 @@ window.justree = window.justree || {};
         shared.playheadPosRel = 0.0;
         shared.root = null;
         shared.rootCells = null;
+        shared.selected = null;
     };
     shared.rootSet = function(root) {
         $('#string').html(root.toString());
@@ -137,6 +138,9 @@ window.justree = window.justree || {};
                 return bY - aY;
             }
         });
+    };
+    shared.selectedSet = function(selected) {
+        shared.selected = selected;
     };
 
 	/* ui */
@@ -443,6 +447,39 @@ window.justree = window.justree || {};
 			video.repaint(video.canvasCtx, video.root, 0, 0, video.canvasWidth, video.canvasHeight);
 		}
 	};
+    video.posAbsToNode = function (x, y) {
+        var width = video.canvasWidth;
+        var height = video.canvasHeight;
+        for (var i = 0; i < shared.rootCells.length; ++i) {
+            var cell = shared.rootCells[i];
+            var cellX = cell.x * width;
+            var cellY = cell.y * height;
+            var cellWidth = cell.width * width;
+            var cellHeight = cell.height * height;
+            if (cellX <= x && x <= cellX + cellWidth &&
+                cellY <= y && y <= cellY + cellHeight) {
+                return cell.node;
+            }
+        }
+        return null;
+    };
+    video.callbackSelectLeaf = function () {
+    };
+    var callbackTouchStart = function (event) {
+    };
+    var callbackTouchMove = function (event) {
+    };
+    var callbackTouchEnd = function (event) {
+        var touch = event.changedTouches[0];
+        shared.selectedSet(video.posAbsToNode(touch.clientX, touch.clientY));
+        video.repaint();
+    };
+    var callbackTouchLeave = function (event) {
+
+    };
+    var callbackTouchCancel = function(event) {
+
+    };
 	video.animate = function () {
 		video.repaint();
 		window.requestAnimationFrame(video.animate);
@@ -458,12 +495,23 @@ window.justree = window.justree || {};
         // draw treemap
 		for (var i = 0; i < shared.rootCells.length; ++i) {
 			var cell = shared.rootCells[i];
-			ctx.fillStyle = cell.rgbString;
-			ctx.fillRect(cell.x * width, cell.y * height, cell.width * width, cell.height * height);
+            var cellX = cell.x * width;
+            var cellY = cell.y * height;
+            var cellWidth = cell.width * width;
+            var cellHeight = cell.height * height;
+            if (cell.node === shared.selected) {
+                ctx.fillStyle = 'rgb(0, 255, 0)';
+                ctx.fillRect(cellX, cellY, cellWidth, cellHeight);
+            }
+            else {
+                ctx.strokeStyle = 'rgb(0, 0, 0)';
+                ctx.rect(cellX, cellY, cellWidth, cellHeight);
+                ctx.stroke();
+            }
 		}
 
         // draw playback line
-        ctx.strokeStyle = 'rgb(0, 0, 0)';
+        ctx.strokeStyle = 'rgb(255, 0, 0)';
         ctx.beginPath();
         var playheadX = shared.playheadPosRel * width;
         ctx.moveTo(playheadX, 0);
@@ -482,6 +530,22 @@ window.justree = window.justree || {};
 		// generate tree
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.rootSet(root);
+
+        // canvas mouse/touch events
+        if (window.supportsTouchEvents) {
+            $('#justree-ui').on('touchstart', callbackTouchStart);
+            $('#justree-ui').on('touchmove', callbackTouchMove);
+            $('#justree-ui').on('touchend', callbackTouchEnd);
+            $('#justree-ui').on('touchleave', callbackTouchLeave);
+            $('#justree-ui').on('touchcancel', callbackTouchCancel);
+        }
+        else {
+            var mouseToTouchEvent = window.mouseToTouchEvent;
+            $('#justree-ui').on('mousedown', mouseToTouchEvent(callbackTouchStart));
+            $('#justree-ui').on('mousemove', mouseToTouchEvent(callbackTouchMove));
+            $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
+            $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
+        }
 
         // tabs
         $('#tabs').tabs({active: 1});
