@@ -6,25 +6,26 @@ window.justree = window.justree || {};
 	var RatioNode = tree.RatioNode = ObjectBase.extend({
 		constructor: function (dim, ratio, on) {
             this.parent = null;
+            this.children = [];
 			this.left = null;
 			this.right = null;
 			this.dim = dim;
 			this.ratio = ratio;
 			this.on = on;
 		},
+		childrenGet: function () {
+			return this.children;
+		},
         isRoot: function () {
             return this.parent === null;
         },
 		isLeaf: function () {
-			return this.left === null && this.right === null;
+			return this.children.length === 0;
 		},
 		toString: function () {
 			var string = '(' + String(this.ratio);
-			if (this.left !== null) {
-				string += ' ' + this.left.toString();
-			}
-			if (this.right !== null) {
-				string += ' ' + this.right.toString();
+			for (var i = 0; i < this.children.length; ++i) {
+				string += ' ' + this.children[i].toString();
 			}
 			string += ')';
 			return string;
@@ -48,16 +49,15 @@ window.justree = window.justree || {};
         else {
             subtree1.parent = null;
         }
-
     };
-	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, pTerm, nDims, ratios, pOn) {
+	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, breadthMax, pLeaf, nDims, ratios, pOn) {
 		//var dim = Math.floor(Math.random() * nDims);
 		var dim = depthCurr % 2;
 		var ratio = ratios[Math.floor(Math.random() * ratios.length)];
 		var on = Math.random() < pOn;
 		var node = new RatioNode(dim, ratio, on);
 
-		var p = pTerm;
+		var p = pLeaf;
 		if (depthCurr < depthMin) {
 			p = 0.0;
 		}
@@ -66,10 +66,12 @@ window.justree = window.justree || {};
 		}
 
 		if (Math.random() >= p) {
-			node.left = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
-			node.right = treeGrow(depthCurr + 1, depthMin, depthMax, pTerm, nDims, ratios, pOn);
-            node.left.parent = node;
-            node.right.parent = node;
+			var childrenNum = 2 + Math.floor(Math.random() * (2 - breadthMax));
+			for (var i = 0; i < childrenNum; ++i) {
+				var child = treeGrow(depthCurr + 1, depthMin, depthMax, breadthMax, pLeaf, nDims, ratios, pOn);
+				child.parent = node;
+				node.children.push(child);
+			}
 		}
 
 		return node;

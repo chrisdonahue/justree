@@ -83,50 +83,74 @@ window.justree = window.justree || {};
         'PLAYING': 1,
         'LOOPING': 2
     };
-    shared.nodeToCells = shared.nodeToCells = function (node, x, y, width, height, cells) {
+    shared.parseNodeRoot = function (node, x, y, width, height) {
+        if (node === undefined) {
+            node = shared.nodeRoot;
+            x = 0.0;
+            y = 0.0;
+            width = 1.0;
+            height = 1.0;
+        }
+
+        var h = Math.random();
+        var s = Math.random();
+        var l = (Math.random() * 0.75) + 0.25;
+        var hsl = Array(h, s, l);
+        var cell = {
+            'node': node,
+            'x': x,
+            'y': y,
+            'width': width,
+            'height': height,
+            'rgbString': rgbToString(hslToRgb(hsl))
+        };
+        node.cell = cell;
+
         if (node.isLeaf()) {
-            var h = Math.random();
-            //node.ratio / 7.0;
-            var s = Math.random();
-            var l = (Math.random() * 0.75) + 0.25;
-            var hsl = Array(h, s, l);
-            cells.push({
-                'node': node,
-                'x': x,
-                'y': y,
-                'width': width,
-                'height': height,
-                'rgbString': rgbToString(hslToRgb(hsl))
-            });
+            shared.leafCellsSorted.push(cell);
         }
         else {
-            var ratio = (node.left.ratio / (node.left.ratio + node.right.ratio));
+            var children = node.children;
+            var ratioSum = 0.0;
+            for (var i = 0; i < children.length; ++i) {
+                ratioSum += children[i].ratio;
+            }
+            var ratioSumInverse = 1.0 / ratioSum;
             if (node.dim === 0) {
-                var offsetX = width * ratio;
-                shared.nodeToCells(node.left, x, y, offsetX, height, cells);
-                shared.nodeToCells(node.right, x + offsetX, y, width - offsetX, height, cells);
+                var offsetX = x;
+                for (var i = 0; i < children.length; ++i) {
+                    var child = children[i];
+                    var childWidth = child.ratio * ratioSumInverse * width;
+                    shared.parseNodeRoot(children[i], offsetX, y, childWidth, height);
+                    offsetX += childWidth;
+                }
             }
             else {
-                var offsetY = height * ratio;
-                shared.nodeToCells(node.left, x, y, width, offsetY, cells);
-                shared.nodeToCells(node.right, x, y + offsetY, width, height - offsetY, cells);
+                var offsetY = y;
+                for (var i = 0; i < children.length; ++i) {
+                    var child = children[i];
+                    var childHeight = child.ratio * ratioSumInverse * height;
+                    shared.parseNodeRoot(children[i], x, offsetY, width, childHeight);
+                    offsetY += childHeight;
+                }
             }
         }
     };
     shared.init = function () {
         shared.playheadState = PlayheadStateEnum.STOPPED;
         shared.playheadPosRel = 0.0;
-        shared.root = null;
-        shared.rootCells = null;
-        shared.selected = null;
+        shared.nodeRoot = null;
+        shared.nodeSelected = null;
+        shared.leafCellsSorted = [];
     };
-    shared.rootSet = function(root) {
-        $('#string').html(root.toString());
-        shared.root = root;
-        shared.rootCells = [];
-        shared.nodeToCells(shared.root, 0, 0, 1.0, 1.0, shared.rootCells);
+    shared.nodeRootSet = function(nodeRoot) {
+        $('#string').html(nodeRoot.toString());
+        shared.nodeRoot = nodeRoot;
+        shared.nodeSelected = null;
+        shared.leafCellsSorted = [];
+        shared.parseNodeRoot();
         // sort by x ascending then y descending
-        shared.rootCells.sort(function (a, b) {
+        shared.leafCellsSorted.sort(function (a, b) {
             var aX = a[2];
             var aY = a[3];
             var bX = b[2];
@@ -139,8 +163,8 @@ window.justree = window.justree || {};
             }
         });
     };
-    shared.selectedSet = function(selected) {
-        shared.selected = selected;
+    shared.nodeSelectedSet = function(nodeSelected) {
+        shared.nodeSelected = nodeSelected;
     };
 
 	/* ui */
@@ -450,8 +474,8 @@ window.justree = window.justree || {};
     video.posAbsToNode = function (x, y) {
         var width = video.canvasWidth;
         var height = video.canvasHeight;
-        for (var i = 0; i < shared.rootCells.length; ++i) {
-            var cell = shared.rootCells[i];
+        for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
+            var cell = shared.leafCellsSorted[i];
             var cellX = cell.x * width;
             var cellY = cell.y * height;
             var cellWidth = cell.width * width;
@@ -463,15 +487,15 @@ window.justree = window.justree || {};
         }
         return null;
     };
-    video.callbackSelectLeaf = function () {
-    };
+    var navChildStack = [];
     var callbackTouchStart = function (event) {
     };
     var callbackTouchMove = function (event) {
     };
     var callbackTouchEnd = function (event) {
         var touch = event.changedTouches[0];
-        shared.selectedSet(video.posAbsToNode(touch.clientX, touch.clientY));
+        shared.nodeSelectedSet(video.posAbsToNode(touch.clientX, touch.clientY));
+        navChildStack = [];
         video.repaint();
     };
     var callbackTouchLeave = function (event) {
@@ -480,6 +504,52 @@ window.justree = window.justree || {};
     var callbackTouchCancel = function(event) {
 
     };
+    var callbackNavParentClick = function (event) {
+        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
+            navChildStack.push(shared.nodeSelected);
+            shared.nodeSelectedSet(shared.nodeSelected.parent);
+        }
+    };
+    var callbackNavSiblingClick = function (event) {
+        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
+            var child = shared.nodeSelected;
+            var parent = child.parent;
+            var siblings = parent.childrenGet();
+            if (siblings.length > 1) {
+                for (var i = 0; i < siblings.length; ++i) {
+                    if (siblings[i] === child) {
+                        shared.nodeSelectedSet(siblings[(i + 1) % siblings.length]);
+                    }
+                }
+            }
+        }
+    };
+    var callbackNavChildClick = function (event) {
+        if (shared.nodeSelected !== null && !shared.nodeSelected.isLeaf()) {
+            var children = shared.nodeSelected.childrenGet();
+            if (navChildStack.length > 0) {
+                var navChild = navChildStack.pop();
+                for (var i = 0; i < navChildStack; ++i) {
+                    var child = children[i];
+                    if (child === navChild) {
+                        navChild = child;
+                        break;
+                    }
+                }
+                if (navChild === null) {
+                    navChildStack = [];
+                }
+                else {
+                    shared.nodeSelectedSet(navChild);
+                    return;
+                }
+            }
+
+            var child = children[Math.floor(Math.random() * children.length)];
+            shared.nodeSelectedSet(child);
+        }
+    };
+
 	video.animate = function () {
 		video.repaint();
 		window.requestAnimationFrame(video.animate);
@@ -492,22 +562,23 @@ window.justree = window.justree || {};
         // clear
         ctx.clearRect(0, 0, width, height);
 
+        // draw selected
+        if (shared.nodeSelected !== null) {
+            var cellSelected = shared.nodeSelected.cell;
+            ctx.fillStyle = 'rgb(0, 255, 0)';
+            ctx.fillRect(cellSelected.x * width, cellSelected.y * height, cellSelected.width * width, cellSelected.height * height);
+        }
+
         // draw treemap
-		for (var i = 0; i < shared.rootCells.length; ++i) {
-			var cell = shared.rootCells[i];
+		for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
+			var cell = shared.leafCellsSorted[i];
             var cellX = cell.x * width;
             var cellY = cell.y * height;
             var cellWidth = cell.width * width;
             var cellHeight = cell.height * height;
-            if (cell.node === shared.selected) {
-                ctx.fillStyle = 'rgb(0, 255, 0)';
-                ctx.fillRect(cellX, cellY, cellWidth, cellHeight);
-            }
-            else {
-                ctx.strokeStyle = 'rgb(0, 0, 0)';
-                ctx.rect(cellX, cellY, cellWidth, cellHeight);
-                ctx.stroke();
-            }
+            ctx.strokeStyle = 'rgb(0, 0, 0)';
+            ctx.rect(cellX, cellY, cellWidth, cellHeight);
+            ctx.stroke();
 		}
 
         // draw playback line
@@ -528,8 +599,8 @@ window.justree = window.justree || {};
 		video.init('justree-ui');
 		
 		// generate tree
-		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
-		shared.rootSet(root);
+		var root = tree.treeGrow(0, config.depthMin, config.depthMax, 2, config.pTerm, config.nDims, config.ratios, config.pOn);
+		shared.nodeRootSet(root);
 
         // canvas mouse/touch events
         if (window.supportsTouchEvents) {
@@ -546,6 +617,11 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
+
+        // button callbacks
+        $('button#parent').on('click', callbackNavParentClick);
+        $('button#sibling').on('click', callbackNavSiblingClick);
+        $('button#child').on('click', callbackNavChildClick);
 
         // tabs
         $('#tabs').tabs({active: 1});
