@@ -120,7 +120,7 @@ window.justree = window.justree || {};
         shared.rootCells = null;
     };
     shared.rootSet = function(root) {
-        $('#debug #msg').html(root.toString());
+        $('#string').html(root.toString());
         shared.root = root;
         shared.rootCells = [];
         shared.nodeToCells(shared.root, 0, 0, 1.0, 1.0, shared.rootCells);
@@ -154,7 +154,7 @@ window.justree = window.justree || {};
         shared.playheadPosRel = 0.0;
     };
     ui.callbackReverbToggle = function () {
-        var $checked = $('#ui #effects input[name=reverb]:checked');
+        var $checked = $('#effects input[name=reverb]:checked');
         if ($checked.val() === 'on') {
             audio.scriptNode.connect(audio.reverbNode);
             audio.reverbNode.connect(audio.audioCtx.destination);
@@ -483,16 +483,20 @@ window.justree = window.justree || {};
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.rootSet(root);
 
+        // tabs
+        $('#tabs').tabs({active: 1});
+        $('button').button();
+
         // DOM callbacks
 		//$('body').css({'overflow': 'hidden'});
-        $('#ui #playback #play').on('click', ui.callbackPlayClick);
-        $('#ui #playback #loop').on('click', ui.callbackLoopClick);
-        $('#ui #playback #stop').on('click', ui.callbackStopClick);
-        ui.hookParamToSlider(audio.gainParam, '#ui #playback #gain');
-        ui.hookParamToSlider(audio.timeLenParam, '#ui #synthesis #time-len');
-        ui.hookParamToSlider(audio.freqMinParam, '#ui #synthesis #freq-min');
-        ui.hookParamToSlider(audio.freqMaxRatParam, '#ui #synthesis #freq-max-rat');
-        $('#ui #effects input[name=reverb]').on('change', ui.callbackReverbToggle);
+        $('#playback #play').on('click', ui.callbackPlayClick);
+        $('#playback #loop').on('click', ui.callbackLoopClick);
+        $('#playback #stop').on('click', ui.callbackStopClick);
+        ui.hookParamToSlider(audio.gainParam, '#playback #gain');
+        ui.hookParamToSlider(audio.timeLenParam, '#synthesis #time-len');
+        ui.hookParamToSlider(audio.freqMinParam, '#synthesis #freq-min');
+        ui.hookParamToSlider(audio.freqMaxRatParam, '#synthesis #freq-max-rat');
+        $('#effects input[name=reverb]').on('change', ui.callbackReverbToggle);
         ui.callbackReverbToggle();
 
 		$(window).resize(video.callbackWindowResize);
