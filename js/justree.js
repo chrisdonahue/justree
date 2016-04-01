@@ -459,6 +459,7 @@ window.justree = window.justree || {};
 		video.viewportHeight = -1;
 		video.canvasWidth = -1;
 		video.canvasHeight = -1;
+        video.zoomCell = null;
 	};
 	video.callbackWindowResize = function () {
 		var viewportWidth = $(window).width();
@@ -551,44 +552,78 @@ window.justree = window.justree || {};
             shared.nodeSelectedSet(child);
         }
     };
+    var callbackNavZoom = function (event) {
+        if (shared.nodeSelected !== null) {
+            video.setZoomCell(shared.nodeSelected.cell);
+            video.repaint();
+        }
+    };
 
+    video.setZoomCell = function (cell) {
+        video.zoomCell = cell;
+    };
 	video.animate = function () {
 		video.repaint();
 		window.requestAnimationFrame(video.animate);
 	};
 	video.repaint = function () {
 		var ctx = video.canvasCtx;
-		var width = video.canvasWidth;
-		var height = video.canvasHeight;
+		var canvasWidth = video.canvasWidth;
+		var canvasHeight = video.canvasHeight;
+        var zoomCell = video.zoomCell;
+        var zoomBb;
+        if (zoomCell === null) {
+            zoomBb = {
+                'x': 0.0,
+                'y': 0.0,
+                'width': 1.0,
+                'height': 1.0
+            };
+        }
+        else {
+            zoomBb = zoomCell;
+            console.log(zoomCell);
+        }
+
+        var relBbToAbsBb = function (relBb) {
+            var x0 = (relBb.x - zoomBb.x) * canvasWidth;
+            var y0 = (relBb.y - zoomBb.y) * canvasHeight;
+            var x1 = ((relBb.x + relBb.width) - zoomBb.x) * canvasWidth;
+            var y1 = ((relBb.y + relBb.height) - zoomBb.y) * canvasHeight;
+            return {
+                'x': x0,
+                'y': y0,
+                'width': x1 - x0,
+                'height': y1 - y0
+            }
+        };
 
         // clear
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        // draw selected
+        // draw selectedSSSS
         if (shared.nodeSelected !== null) {
             var cellSelected = shared.nodeSelected.cell;
             ctx.fillStyle = 'rgb(0, 255, 0)';
-            ctx.fillRect(cellSelected.x * width, cellSelected.y * height, cellSelected.width * width, cellSelected.height * height);
+            var absBb = relBbToAbsBb(cellSelected);
+            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
         }
 
         // draw treemap
 		for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
 			var cell = shared.leafCellsSorted[i];
-            var cellX = cell.x * width;
-            var cellY = cell.y * height;
-            var cellWidth = cell.width * width;
-            var cellHeight = cell.height * height;
+            var absBb = relBbToAbsBb(cell);
             ctx.strokeStyle = 'rgb(0, 0, 0)';
-            ctx.rect(cellX, cellY, cellWidth, cellHeight);
+            ctx.rect(absBb.x, absBb.y, absBb.width, absBb.height);
             ctx.stroke();
 		}
 
         // draw playback line
         ctx.strokeStyle = 'rgb(255, 0, 0)';
         ctx.beginPath();
-        var playheadX = shared.playheadPosRel * width;
+        var playheadX = relBbToAbsBb({'x': shared.playheadPosRel}).x;
         ctx.moveTo(playheadX, 0);
-        ctx.lineTo(playheadX, height);
+        ctx.lineTo(playheadX, canvasHeight);
         ctx.stroke();
 	};
 
@@ -624,6 +659,7 @@ window.justree = window.justree || {};
         $('button#parent').on('click', callbackNavParentClick);
         $('button#sibling').on('click', callbackNavSiblingClick);
         $('button#child').on('click', callbackNavChildClick);
+        $('button#zoom').on('click', callbackNavZoom);
 
         // tabs
         //$('#tabs').tabs({active: 1});

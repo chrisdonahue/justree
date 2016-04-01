@@ -15,64 +15,51 @@
 </head>
 
 <body>
-	<div id="tabs">
-	    <ul>
-	        <li><a href="#tabs-1">Synthesis</a>
-	        </li>
-	        <li><a href="#tabs-2">Sequence</a>
-	        </li>
-	        <li><a href="#tabs-3">String</a>
-	        </li>
-	    </ul>
-	    <div id="tabs-1">
-			<div id="playback">
-				<button id="play">Play</button>
-				<button id="loop">Loop</button>
-				<button id="stop">Stop</button>
-				<p>Volume</p>
-				<input type="range" id="gain"></input>
-			</div>
-			<div id="synthesis">
-				<p>Length</p><input type="range" id="time-len"></input>
-				<p>Freq min</p><input type="range" id="freq-min"></input>
-				<p>Freq multiplier</p><input type="range" id="freq-max-rat"></input>
-			</div>
-			<div id="effects">
-				<p>Reverb</p><input type="radio" id="reverb-on" name="reverb" value="on"><label for="reverb-on">On</label><input type="radio" id="reverb-off" name="reverb" value="off" checked><label for="reverb-off">Off</label>
-			</div>
-	    </div>
-	    <div id="tabs-2">
-	    	<div id="subtree">
-	    		<div id="nav">
-	    			<button id="sibling">Sibling</button>
-	    			<button id="parent">Parent</button>
-	    			<button id="child">Child</button>
-	    			<button id="zoom">Zoom</button>
-	    		</div>
-	    		<div id="edit">
-	    			<button>Ratio</button>
-	    			<button>+TChild</button>
-	    			<button>+FChild</button>
-	    			<button>Grid</button>
-	    			<button>Clear</button>
-	    			<button>Random</button>
-	    			<button>Swap</button>
-	    			<button>Reproduce</button>
-	    		</div>
-	    		<div id="store">
-					<button>Save</button>
-					<button>Recall</button>
-	    		</div>
-	    	</div>
-			<div id="canvas">
-				<canvas id="justree-ui" width="512" height="512"></canvas>
-			</div>
-	    </div>
-	    <div id="tabs-3">
-	    	<p id="string"></p>
-	    </div>
+    <div id="audio">
+		<div id="playback">
+			<button id="play">Play</button>
+			<button id="loop">Loop</button>
+			<button id="stop">Stop</button>
+			<p>Volume</p>
+			<input type="range" id="gain"></input>
+		</div>
+		<div id="synthesis">
+			<p>Length</p><input type="range" id="time-len"></input>
+			<p>Freq min</p><input type="range" id="freq-min"></input>
+			<p>Freq multiplier</p><input type="range" id="freq-max-rat"></input>
+		</div>
+		<div id="effects">
+			<p>Reverb</p><input type="radio" id="reverb-on" name="reverb" value="on"><label for="reverb-on">On</label><input type="radio" id="reverb-off" name="reverb" value="off" checked><label for="reverb-off">Off</label>
+		</div>
+    </div>
+	<div id="subtree">
+		<div id="nav">
+			<button id="sibling">Sibling</button>
+			<button id="parent">Parent</button>
+			<button id="child">Child</button>
+			<button id="zoom">Zoom</button>
+		</div>
+		<div id="edit">
+			<button>Ratio</button>
+			<button>+TChild</button>
+			<button>+FChild</button>
+			<button>Grid</button>
+			<button>Clear</button>
+			<button>Random</button>
+			<button>Swap</button>
+			<button>Reproduce</button>
+		</div>
+		<div id="store">
+			<button>Save</button>
+			<button>Recall</button>
+		</div>
+		<div id="canvas">
+			<canvas id="justree-ui" width="512" height="512"></canvas>
+		</div>
 	</div>
-	<div id="tabid"></div>
+    <div>
+    	<p id="string"></p>
+    </div>
 
 	<!--
 	<div id="debug">
