@@ -626,8 +626,8 @@ window.justree = window.justree || {};
         $('button#child').on('click', callbackNavChildClick);
 
         // tabs
-        $('#tabs').tabs({active: 1});
-        $('button').button();
+        //$('#tabs').tabs({active: 1});
+        //$('button').button();
 
         // DOM callbacks
 		//$('body').css({'overflow': 'hidden'});
