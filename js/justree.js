@@ -115,7 +115,7 @@ window.justree = window.justree || {};
             shared.leafCellsSorted.push(cell);
         }
         else {
-            var children = node.children;
+            var children = node.getChildren();
             var ratioSum = 0.0;
             for (var i = 0; i < children.length; ++i) {
                 ratioSum += children[i].ratio;
@@ -155,6 +155,8 @@ window.justree = window.justree || {};
         shared.nodeRoot = nodeRoot;
         shared.nodeSelected = null;
         shared.leafCellsSorted = [];
+    };
+    shared.nodeRootScan = function () {
         shared.parseNodeRoot();
         // sort by x ascending then y descending
         shared.leafCellsSorted.sort(function (a, b) {
@@ -209,16 +211,103 @@ window.justree = window.justree || {};
             param['val'] = event.target.value;
         });
     };
-    ui.callbackCopyClick = function () {
+    var navChildStack = [];
+    var callbackTouchStart = function (event) {
+    };
+    var callbackTouchMove = function (event) {
+    };
+    var callbackTouchEnd = function (event) {
+        var touch = event.changedTouches[0];
+        switch (shared.modalState) {
+            case ModalEnum.HEAR:
+                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
+                nodeSelected.on = !nodeSelected.on;
+                video.repaint();
+                break;
+            case ModalEnum.EDIT:
+                var touch = event.changedTouches[0];
+                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
+                shared.nodeSelectedSet(nodeSelected);
+                navChildStack = [];
+                video.repaint();
+                break;
+            default:
+                break;
+        }
+    };
+    var callbackTouchLeave = function (event) {
+
+    };
+    var callbackTouchCancel = function(event) {
+
+    };
+    var callbackNavParentClick = function (event) {
+        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
+            navChildStack.push(shared.nodeSelected);
+            shared.nodeSelectedSet(shared.nodeSelected.parent);
+        }
+    };
+    var callbackNavSiblingClick = function (event) {
+        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
+            var child = shared.nodeSelected;
+            var parent = child.parent;
+            if (parent !== null) {
+                var childIdx = parent.getChildIdxForChild(child);
+                if (childIdx >= 0) {
+                    shared.nodeSelectedSet(parent.getChild((childIdx + 1) % parent.getNumChildren()));
+                }
+                navChildStack = [];
+            }
+        }
+    };
+    var callbackNavChildClick = function (event) {
+        if (shared.nodeSelected !== null && !shared.nodeSelected.isLeaf()) {
+            if (navChildStack.length > 0) {
+                var navChild = navChildStack.pop();
+                var navChildIdx = shared.nodeSelected.getChildIdxForChild(navChild);
+                if (navChildIdx >= 0) {
+                    shared.nodeSelectedSet(navChild);
+                    return;
+                }
+                else {
+                    navChildStack = []
+                }
+            }
+
+            var child = shared.nodeSelected.getChild(Math.floor(Math.random() * shared.nodeSelected.getNumChildren()));
+            shared.nodeSelectedSet(child);
+        }
+    };
+    var callbackNavZoomClick = function (event) {
         if (shared.nodeSelected !== null) {
-            shared.nodeClipboard = shared.nodeSelected.copy();
+            video.setZoomCell(shared.nodeSelected.cell);
+            video.repaint();
         }
     };
-    ui.callbackPasteClick = function () {
+    var callbackCopyClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeClipboard = shared.nodeSelected.getCopy();
+            shared.nodeSelectedSet(null);
+            video.repaint();
+        }
+    };
+    var callbackPasteClick = function () {
         if (shared.nodeSelected !== null && shared.nodeClipboard !== null) {
-            
+            var copy = shared.nodeClipboard.getCopy();
+            console.log(copy);
+            if (shared.nodeSelected.isRoot()) {
+                shared.nodeRootSet(copy);
+            }
+            else {
+                var parent = shared.nodeSelected.getParent();
+                var childIdx = parent.getChildIdxForChild(shared.nodeSelected);
+                parent.setChild(childIdx, copy);
+            }
+            shared.nodeRootScan();
+            video.repaint();
         }
     };
+
 
 	/* audio */
 	var audio = justree.audio = {};
@@ -505,89 +594,6 @@ window.justree = window.justree || {};
         }
         return null;
     };
-    var navChildStack = [];
-    var callbackTouchStart = function (event) {
-    };
-    var callbackTouchMove = function (event) {
-    };
-    var callbackTouchEnd = function (event) {
-        var touch = event.changedTouches[0];
-        switch (shared.modalState) {
-            case ModalEnum.HEAR:
-                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
-                nodeSelected.on = !nodeSelected.on;
-                video.repaint();
-                break;
-            case ModalEnum.EDIT:
-                var touch = event.changedTouches[0];
-                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
-                shared.nodeSelectedSet(nodeSelected);
-                navChildStack = [];
-                video.repaint();
-                break;
-            default:
-                break;
-        }
-    };
-    var callbackTouchLeave = function (event) {
-
-    };
-    var callbackTouchCancel = function(event) {
-
-    };
-    var callbackNavParentClick = function (event) {
-        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
-            navChildStack.push(shared.nodeSelected);
-            shared.nodeSelectedSet(shared.nodeSelected.parent);
-        }
-    };
-    var callbackNavSiblingClick = function (event) {
-        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
-            var child = shared.nodeSelected;
-            var parent = child.parent;
-            var siblings = parent.childrenGet();
-            if (siblings.length > 1) {
-                for (var i = 0; i < siblings.length; ++i) {
-                    if (siblings[i] === child) {
-                        shared.nodeSelectedSet(siblings[(i + 1) % siblings.length]);
-                    }
-                }
-            }
-            navChildStack = [];
-        }
-    };
-    var callbackNavChildClick = function (event) {
-        if (shared.nodeSelected !== null && !shared.nodeSelected.isLeaf()) {
-            var children = shared.nodeSelected.childrenGet();
-            if (navChildStack.length > 0) {
-                var navChild = navChildStack.pop();
-                var navChildValid = false;
-                for (var i = 0; i < children.length; ++i) {
-                    var child = children[i];
-                    if (child === navChild) {
-                        navChildValid = true;
-                        break;
-                    }
-                }
-                if (navChildValid) {
-                    shared.nodeSelectedSet(navChild);
-                    return;
-                }
-                else {
-                    navChildStack = [];
-                }
-            }
-
-            var child = children[Math.floor(Math.random() * children.length)];
-            shared.nodeSelectedSet(child);
-        }
-    };
-    var callbackNavZoom = function (event) {
-        if (shared.nodeSelected !== null) {
-            video.setZoomCell(shared.nodeSelected.cell);
-            video.repaint();
-        }
-    };
 
     video.setZoomCell = function (cell) {
         video.zoomCell = cell;
@@ -675,6 +681,30 @@ window.justree = window.justree || {};
 		// generate tree
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, 2, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.nodeRootSet(root);
+        shared.nodeRootScan();
+
+        // modal callbacks
+        $('button#hear').on('click', function () {
+            shared.modalState = ModalEnum.HEAR;
+            $('div#edit').hide();
+            $('div#hear').show();
+            shared.nodeSelectedSet(null);
+            navChildStack = [];
+            video.repaint();
+        });
+        $('button#edit').on('click', function () {
+            shared.modalState = ModalEnum.EDIT;
+            $('div#hear').hide();
+            $('div#edit').show();
+        });
+
+        // button callbacks
+        $('button#parent').on('click', callbackNavParentClick);
+        $('button#sibling').on('click', callbackNavSiblingClick);
+        $('button#child').on('click', callbackNavChildClick);
+        $('button#zoom').on('click', callbackNavZoomClick);
+        $('button#copy').on('click', callbackCopyClick);
+        $('button#paste').on('click', callbackPasteClick);
 
         // canvas mouse/touch events
         if (window.supportsTouchEvents) {
@@ -691,27 +721,6 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
-
-        // button callbacks
-        $('button#parent').on('click', callbackNavParentClick);
-        $('button#sibling').on('click', callbackNavSiblingClick);
-        $('button#child').on('click', callbackNavChildClick);
-        $('button#zoom').on('click', callbackNavZoom);
-
-        // modal callbacks
-        $('button#hear').on('click', function () {
-            shared.modalState = ModalEnum.HEAR;
-            $('div#edit').hide();
-            $('div#hear').show();
-            shared.nodeSelectedSet(null);
-            navChildStack = [];
-            video.repaint();
-        });
-        $('button#edit').on('click', function () {
-            shared.modalState = ModalEnum.EDIT;
-            $('div#hear').hide();
-            $('div#edit').show();
-        });
 
         // tabs
         //$('#tabs').tabs({active: 1});

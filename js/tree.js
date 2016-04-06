@@ -17,14 +17,14 @@ window.justree = window.justree || {};
 			}
 			var thisCopy = new RatioNode(this.dim, this.ratio, this.on);
 			for (var i = 0; i < this.getNumChildren(); ++i) {
-				thisCopy.children.push(this.getChild(i).getCopy(thisCopy));
+				thisCopy.addChild(this.getChild(i).getCopy(thisCopy));
 			}
-			thisCopy.parent = parent;
+			thisCopy.setParent(parent);
 			return thisCopy;
 		},
 		getChildIdxForChild: function (child) {
 			for (var i = 0; i < this.getNumChildren(); ++i) {
-				if (this.children === child) {
+				if (this.getChild(i) === child) {
 					return i;
 				}
 			}
@@ -35,15 +35,13 @@ window.justree = window.justree || {};
 		},
 		setChild: function(idx, child) {
 			this.children[idx] = child;
-		},
-		getChildren: function () {
-			return this.children;
-		},
-		getNumChildren: function () {
-			return this.children.length;
+			child.parent = this;
 		},
 		insertChild: function (idx, child) {
 			this.children.splice(idx, 0, child)
+		},
+		addChild: function(child) {
+			this.children.push(child);
 		},
 		rotateChildren: function () {
 			if (this.getNumChildren() > 1) {
@@ -54,6 +52,18 @@ window.justree = window.justree || {};
 					childLast = child;
 				}
 			}
+		},
+		getParent: function () {
+			return this.parent;
+		},
+		setParent: function (parent) {
+			this.parent = parent;
+		},
+		getChildren: function () {
+			return this.children;
+		},
+		getNumChildren: function () {
+			return this.children.length;
 		},
         isRoot: function () {
             return this.parent === null;
@@ -70,7 +80,7 @@ window.justree = window.justree || {};
 			return string;
 		}
 	});
-	
+
     var swapSubTrees = function (subtree0, subtree1) {
         subtree0Parent = subtree0.parent;
         subtree1Parent = subtree1.parent;
