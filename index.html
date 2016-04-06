@@ -15,7 +15,11 @@
 </head>
 
 <body>
-    <div id="audio">
+	<div id="mode">
+		<button id="hear">Hear</button>
+		<button id="edit">Edit</button>
+	</div>
+    <div id="hear" hidden>
 		<div id="playback">
 			<button id="play">Play</button>
 			<button id="loop">Loop</button>
@@ -32,7 +36,7 @@
 			<p>Reverb</p><input type="radio" id="reverb-on" name="reverb" value="on"><label for="reverb-on">On</label><input type="radio" id="reverb-off" name="reverb" value="off" checked><label for="reverb-off">Off</label>
 		</div>
     </div>
-	<div id="subtree">
+	<div id="edit">
 		<div id="nav">
 			<button id="sibling">Sibling</button>
 			<button id="parent">Parent</button>
@@ -50,9 +54,11 @@
 			<button>Reproduce</button>
 		</div>
 		<div id="store">
-			<button>Save</button>
-			<button>Recall</button>
+			<button>Copy</button>
+			<button>Paste</button>
 		</div>
+	</div>
+	<div id="subtree">
 		<div id="canvas">
 			<canvas id="justree-ui" width="512" height="512"></canvas>
 		</div>

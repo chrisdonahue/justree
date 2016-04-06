@@ -32,7 +32,7 @@ window.justree = window.justree || {};
 	config.depthMax = 7;
 	config.nDims = 2;
 	config.pTerm = 0.5;
-	config.pOn = 0.5;
+	config.pOn = 0.0;
     config.ratios = [1, 2, 3];
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
@@ -82,6 +82,11 @@ window.justree = window.justree || {};
         'STOPPED': 0,
         'PLAYING': 1,
         'LOOPING': 2
+    };
+    var ModalEnum = shared.ModalEnum = {
+        'HEAR': 0,
+        'EDIT': 1,
+        'SHARE': 2
     };
     shared.parseNodeRoot = function (node, x, y, width, height) {
         if (node === undefined) {
@@ -139,9 +144,11 @@ window.justree = window.justree || {};
     shared.init = function () {
         shared.playheadState = PlayheadStateEnum.STOPPED;
         shared.playheadPosRel = 0.0;
+        shared.nodeClipboard = null;
         shared.nodeRoot = null;
         shared.nodeSelected = null;
         shared.leafCellsSorted = [];
+        shared.modalState = ModalEnum.EDIT;
     };
     shared.nodeRootSet = function(nodeRoot) {
         $('#string').html(nodeRoot.toString());
@@ -201,6 +208,16 @@ window.justree = window.justree || {};
         $slider.on('input', function (event) {
             param['val'] = event.target.value;
         });
+    };
+    ui.callbackCopyClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeClipboard = shared.nodeSelected.copy();
+        }
+    };
+    ui.callbackPasteClick = function () {
+        if (shared.nodeSelected !== null && shared.nodeClipboard !== null) {
+            
+        }
     };
 
 	/* audio */
@@ -313,10 +330,10 @@ window.justree = window.justree || {};
                 var cellCurr = cells[cellCurrIdx];
                 var cellCurrStart = cellCurr.x;
                 var cellCurrEnd = cellCurr.x + cellCurr.width;
-                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd) {
+                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd && cellCurr.node.on) {
                     cellsIdxStarting.push(cellCurrIdx);
                 }
-                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd) {
+                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd && cellCurr.node.on) {
                     cellsIdxEnding.push(cellCurrIdx);
                 }
                 ++cellCurrIdx;
@@ -495,9 +512,22 @@ window.justree = window.justree || {};
     };
     var callbackTouchEnd = function (event) {
         var touch = event.changedTouches[0];
-        shared.nodeSelectedSet(video.posAbsToNode(touch.clientX, touch.clientY));
-        navChildStack = [];
-        video.repaint();
+        switch (shared.modalState) {
+            case ModalEnum.HEAR:
+                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
+                nodeSelected.on = !nodeSelected.on;
+                video.repaint();
+                break;
+            case ModalEnum.EDIT:
+                var touch = event.changedTouches[0];
+                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
+                shared.nodeSelectedSet(nodeSelected);
+                navChildStack = [];
+                video.repaint();
+                break;
+            default:
+                break;
+        }
     };
     var callbackTouchLeave = function (event) {
 
@@ -601,22 +631,29 @@ window.justree = window.justree || {};
         // clear
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        // draw selectedSSSS
-        if (shared.nodeSelected !== null) {
-            var cellSelected = shared.nodeSelected.cell;
-            ctx.fillStyle = 'rgb(0, 255, 0)';
-            var absBb = relBbToAbsBb(cellSelected);
-            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
-        }
-
         // draw treemap
 		for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
 			var cell = shared.leafCellsSorted[i];
             var absBb = relBbToAbsBb(cell);
-            ctx.strokeStyle = 'rgb(0, 0, 0)';
+            if (cell.node.on) {
+                ctx.fillStyle = 'rgb(255, 255, 255)';
+            }
+            else {
+                ctx.fillStyle = 'rgb(0, 0, 0)';
+            }
+            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
+            ctx.strokeStyle = 'rgb(0, 0, 255)';
             ctx.rect(absBb.x, absBb.y, absBb.width, absBb.height);
             ctx.stroke();
 		}
+
+        // draw selected
+        if (shared.nodeSelected !== null) {
+            var cellSelected = shared.nodeSelected.cell;
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+            var absBb = relBbToAbsBb(cellSelected);
+            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
+        }
 
         // draw playback line
         ctx.strokeStyle = 'rgb(255, 0, 0)';
@@ -660,6 +697,21 @@ window.justree = window.justree || {};
         $('button#sibling').on('click', callbackNavSiblingClick);
         $('button#child').on('click', callbackNavChildClick);
         $('button#zoom').on('click', callbackNavZoom);
+
+        // modal callbacks
+        $('button#hear').on('click', function () {
+            shared.modalState = ModalEnum.HEAR;
+            $('div#edit').hide();
+            $('div#hear').show();
+            shared.nodeSelectedSet(null);
+            navChildStack = [];
+            video.repaint();
+        });
+        $('button#edit').on('click', function () {
+            shared.modalState = ModalEnum.EDIT;
+            $('div#hear').hide();
+            $('div#edit').show();
+        });
 
         // tabs
         //$('#tabs').tabs({active: 1});
