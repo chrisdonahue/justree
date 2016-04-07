@@ -69,6 +69,9 @@ window.justree = window.justree || {};
 		addChild: function(child) {
 			this.children.push(child);
 		},
+		deleteChildren: function () {
+			this.children = [];
+		},
 		rotateChildren: function () {
 			if (this.getNumChildren() > 1) {
 				var childLast = this.getChild(this.getNumChildren() - 1);

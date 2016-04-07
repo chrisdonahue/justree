@@ -294,6 +294,16 @@ window.justree = window.justree || {};
             video.repaint();
         }
     };
+    var callbackCutClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeClipboard = shared.nodeSelected.getCopy();
+            shared.nodeSelected.deleteChildren();
+            shared.nodeSelectedSet(null);
+            shared.nodeRootScan();
+            video.repaint();
+        }
+        debugAssert(shared.nodeClipboard.isSane(), 'Cut node insane.');
+    };
     var callbackCopyClick = function () {
         if (shared.nodeSelected !== null) {
             shared.nodeClipboard = shared.nodeSelected.getCopy();
@@ -312,9 +322,11 @@ window.justree = window.justree || {};
                 var parent = shared.nodeSelected.getParent();
                 var childIdx = parent.getChildIdxForChild(shared.nodeSelected);
                 if (childIdx >= 0) {
+                    copy.setRatio(shared.nodeSelected.getRatio());
                     parent.setChild(childIdx, copy);
                 }
             }
+            shared.nodeSelectedSet(null);
             shared.nodeRootScan();
             video.repaint();
         }
@@ -738,6 +750,7 @@ window.justree = window.justree || {};
         $('button#zoom').on('click', callbackNavZoomClick);
         $('button#ratio-inc').on('click', callbackRatioIncrementClick);
         $('button#ratio-dec').on('click', callbackRatioDecrementClick);
+        $('button#cut').on('click', callbackCutClick);
         $('button#copy').on('click', callbackCopyClick);
         $('button#paste').on('click', callbackPasteClick);
 
