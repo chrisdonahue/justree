@@ -28,8 +28,8 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 
     // tree params
-	config.depthMin = 1;
-	config.depthMax = 2;
+	config.depthMin = 4;
+	config.depthMax = 6;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.0;
