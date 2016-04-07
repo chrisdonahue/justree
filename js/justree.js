@@ -40,6 +40,7 @@ window.justree = window.justree || {};
     config.debug = true;
     var debugAssert = function(assertion, msg) {
         if (config.debug && !assertion) {
+            alert(msg);
             throw msg;
         }
     };
@@ -351,6 +352,14 @@ window.justree = window.justree || {};
             }
         }
         debugAssert(shared.nodeRoot.isSane(), 'Root insane after ratio--.');
+    };
+    var callbackClearClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeSelected.deleteChildren();
+            shared.nodeRootScan();
+            video.repaint();
+        }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after clear.');
     };
 
 	/* audio */
@@ -750,6 +759,7 @@ window.justree = window.justree || {};
         $('button#zoom').on('click', callbackNavZoomClick);
         $('button#ratio-inc').on('click', callbackRatioIncrementClick);
         $('button#ratio-dec').on('click', callbackRatioDecrementClick);
+        $('button#clear').on('click', callbackClearClick);
         $('button#cut').on('click', callbackCutClick);
         $('button#copy').on('click', callbackCopyClick);
         $('button#paste').on('click', callbackPasteClick);
