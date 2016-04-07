@@ -11,6 +11,21 @@ window.justree = window.justree || {};
 			this.ratio = ratio;
 			this.on = on;
 		},
+		getRatio: function () {
+			return this.ratio;
+		},
+		setRatio: function (ratio) {
+			this.ratio = ratio;
+		},
+		getDepth: function () {
+			depth = 0;
+			nodeCurr = this;
+			while (nodeCurr.parent !== null) {
+				nodeCurr = nodeCurr.parent
+				depth++;
+			}
+			return depth;
+		},
 		getCopy: function (parent) {
 			if (parent === undefined) {
 				parent = null;
@@ -21,6 +36,17 @@ window.justree = window.justree || {};
 			}
 			thisCopy.setParent(parent);
 			return thisCopy;
+		},
+		isSane: function (parent) {
+			if (parent === undefined) {
+				parent = null;
+			}
+			var sane = true;
+			for (var i = 0; i < this.getNumChildren(); ++i) {
+				sane = sane && this.getChild(i).getParent() === this;
+				sane = sane && this.getChild(i).isSane(this);
+			}
+			return sane;
 		},
 		getChildIdxForChild: function (child) {
 			for (var i = 0; i < this.getNumChildren(); ++i) {

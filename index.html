@@ -38,22 +38,33 @@
     </div>
 	<div id="edit">
 		<div id="nav">
+			<p>Navigation</p>
+			<button id="root">Root</button>
 			<button id="sibling">Sibling</button>
 			<button id="parent">Parent</button>
 			<button id="child">Child</button>
-			<button id="zoom">Zoom</button>
+			<button id="zoom" disabled>Zoom</button>
+		</div>
+		<div id="oops">
+			<p>Oops</p>
+			<button id="undo" disabled>Undo</button>
+			<button id="redo" disabled>Redo</button>
 		</div>
 		<div id="edit">
-			<button>Ratio</button>
-			<button>+TChild</button>
-			<button>+FChild</button>
-			<button>Grid</button>
-			<button>Clear</button>
-			<button>Random</button>
-			<button>Swap</button>
-			<button>Reproduce</button>
+			<p>Edit</p>
+			<button id="ratio-inc">Ratio++</button>
+			<button id="ratio-dec">Ratio--</button>
+			<button id="child-add" disabled>+TChild</button>
+			<button disabled>+FChild</button>
+			<button disabled>Grid</button>
+			<button disabled>Clear</button>
+			<button disabled>Random</button>
+			<button disabled>Swap</button>
+			<button disabled>Reproduce</button>
 		</div>
 		<div id="store">
+			<p>Clipboard</p>
+			<button id="cut" disabled>Copy</button>
 			<button id="copy">Copy</button>
 			<button id="paste">Paste</button>
 		</div>

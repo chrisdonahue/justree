@@ -28,8 +28,8 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 
     // tree params
-	config.depthMin = 4;
-	config.depthMax = 7;
+	config.depthMin = 1;
+	config.depthMax = 2;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.0;
@@ -37,6 +37,12 @@ window.justree = window.justree || {};
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
     config.ratiosLen = config.ratios.length;
+    config.debug = true;
+    var debugAssert = function(assertion, msg) {
+        if (config.debug && !assertion) {
+            throw msg;
+        }
+    };
 
     // audio params
     config.blockSize = 1024;
@@ -88,7 +94,7 @@ window.justree = window.justree || {};
         'EDIT': 1,
         'SHARE': 2
     };
-    shared.parseNodeRoot = function (node, x, y, width, height) {
+    shared.parseNodeRoot = function (node, depth, x, y, width, height) {
         if (node === undefined) {
             node = shared.nodeRoot;
             x = 0.0;
@@ -126,7 +132,7 @@ window.justree = window.justree || {};
                 for (var i = 0; i < children.length; ++i) {
                     var child = children[i];
                     var childWidth = child.ratio * ratioSumInverse * width;
-                    shared.parseNodeRoot(children[i], offsetX, y, childWidth, height);
+                    shared.parseNodeRoot(children[i], depth + 1, offsetX, y, childWidth, height);
                     offsetX += childWidth;
                 }
             }
@@ -135,7 +141,7 @@ window.justree = window.justree || {};
                 for (var i = 0; i < children.length; ++i) {
                     var child = children[i];
                     var childHeight = child.ratio * ratioSumInverse * height;
-                    shared.parseNodeRoot(children[i], x, offsetY, width, childHeight);
+                    shared.parseNodeRoot(children[i], depth + 1, x, offsetY, width, childHeight);
                     offsetY += childHeight;
                 }
             }
@@ -151,12 +157,12 @@ window.justree = window.justree || {};
         shared.modalState = ModalEnum.EDIT;
     };
     shared.nodeRootSet = function(nodeRoot) {
-        $('#string').html(nodeRoot.toString());
         shared.nodeRoot = nodeRoot;
         shared.nodeSelected = null;
         shared.leafCellsSorted = [];
     };
     shared.nodeRootScan = function () {
+        shared.leafCellsSorted = [];
         shared.parseNodeRoot();
         // sort by x ascending then y descending
         shared.leafCellsSorted.sort(function (a, b) {
@@ -171,6 +177,7 @@ window.justree = window.justree || {};
                 return bY - aY;
             }
         });
+        $('#string').html(shared.nodeRoot.toString());
     };
     shared.nodeSelectedSet = function(nodeSelected) {
         shared.nodeSelected = nodeSelected;
@@ -241,6 +248,9 @@ window.justree = window.justree || {};
     var callbackTouchCancel = function(event) {
 
     };
+    var callbackNavRootClick = function (event) {
+        shared.nodeSelectedSet(shared.nodeRoot);
+    };
     var callbackNavParentClick = function (event) {
         if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
             navChildStack.push(shared.nodeSelected);
@@ -290,24 +300,46 @@ window.justree = window.justree || {};
             shared.nodeSelectedSet(null);
             video.repaint();
         }
+        debugAssert(shared.nodeClipboard.isSane(), 'Copied node insane.');
     };
     var callbackPasteClick = function () {
         if (shared.nodeSelected !== null && shared.nodeClipboard !== null) {
             var copy = shared.nodeClipboard.getCopy();
-            console.log(copy);
             if (shared.nodeSelected.isRoot()) {
                 shared.nodeRootSet(copy);
             }
             else {
                 var parent = shared.nodeSelected.getParent();
                 var childIdx = parent.getChildIdxForChild(shared.nodeSelected);
-                parent.setChild(childIdx, copy);
+                if (childIdx >= 0) {
+                    parent.setChild(childIdx, copy);
+                }
             }
             shared.nodeRootScan();
             video.repaint();
         }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after paste.');
     };
-
+    var callbackRatioIncrementClick = function () {
+        if (shared.nodeSelected !== null) {
+            var ratio = shared.nodeSelected.getRatio();
+            shared.nodeSelected.setRatio(ratio + 1);
+            shared.nodeRootScan();
+            video.repaint();
+        }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after ratio++.');
+    };
+    var callbackRatioDecrementClick = function () {
+        if (shared.nodeSelected !== null) {
+            var ratio = shared.nodeSelected.getRatio();
+            if (ratio > 1) {
+                shared.nodeSelected.setRatio(ratio - 1);
+                shared.nodeRootScan();
+                video.repaint();
+            }
+        }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after ratio--.');
+    };
 
 	/* audio */
 	var audio = justree.audio = {};
@@ -463,8 +495,8 @@ window.justree = window.justree || {};
                 var cellFracStep = playheadPosStep * cellWidthInv;
                 for (var sample = 0; sample < blockLen; ++sample) {
                     block1[sample] = cellFrac;
-                    cellFrac += cellFracStep
-;                }
+                    cellFrac += cellFracStep;
+                }
 
                 // map to table range
                 envRangeMap.perform(block, 1, 0, blockLen);
@@ -702,7 +734,10 @@ window.justree = window.justree || {};
         $('button#parent').on('click', callbackNavParentClick);
         $('button#sibling').on('click', callbackNavSiblingClick);
         $('button#child').on('click', callbackNavChildClick);
+        $('button#root').on('click', callbackNavRootClick);
         $('button#zoom').on('click', callbackNavZoomClick);
+        $('button#ratio-inc').on('click', callbackRatioIncrementClick);
+        $('button#ratio-dec').on('click', callbackRatioDecrementClick);
         $('button#copy').on('click', callbackCopyClick);
         $('button#paste').on('click', callbackPasteClick);
 
