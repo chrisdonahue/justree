@@ -72,7 +72,17 @@ window.justree = window.justree || {};
 		deleteChildren: function () {
 			this.children = [];
 		},
-		rotateChildren: function () {
+		rotateChildrenLeft: function () {
+			if (this.getNumChildren() > 1) {
+				var childLast = this.getChild(0);
+				for (var i = this.getNumChildren() - 1; i >= 0; --i) {
+					var child = this.getChild(i);
+					this.setChild(i, childLast);
+					childLast = child;
+				}
+			}
+		},
+		rotateChildrenRight: function () {
 			if (this.getNumChildren() > 1) {
 				var childLast = this.getChild(this.getNumChildren() - 1);
 				for (var i = 0; i < this.getNumChildren(); ++i) {

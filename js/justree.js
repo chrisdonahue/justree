@@ -361,6 +361,22 @@ window.justree = window.justree || {};
         }
         debugAssert(shared.nodeRoot.isSane(), 'Root insane after clear.');
     };
+    var callbackCycleLClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeSelected.rotateChildrenLeft();
+            shared.nodeRootScan();
+            video.repaint();
+        }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after cycleL.');
+    };
+    var callbackCycleRClick = function () {
+        if (shared.nodeSelected !== null) {
+            shared.nodeSelected.rotateChildrenRight();
+            shared.nodeRootScan();
+            video.repaint();
+        }
+        debugAssert(shared.nodeRoot.isSane(), 'Root insane after cycleR.');
+    };
 
 	/* audio */
 	var audio = justree.audio = {};
@@ -732,7 +748,7 @@ window.justree = window.justree || {};
 		video.init('justree-ui');
 		
 		// generate tree
-		var root = tree.treeGrow(0, config.depthMin, config.depthMax, 2, config.pTerm, config.nDims, config.ratios, config.pOn);
+		var root = tree.treeGrow(0, config.depthMin, config.depthMax, 3, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.nodeRootSet(root);
         shared.nodeRootScan();
 
@@ -759,6 +775,8 @@ window.justree = window.justree || {};
         $('button#zoom').on('click', callbackNavZoomClick);
         $('button#ratio-inc').on('click', callbackRatioIncrementClick);
         $('button#ratio-dec').on('click', callbackRatioDecrementClick);
+        $('button#cycle-l').on('click', callbackCycleLClick);
+        $('button#cycle-r').on('click', callbackCycleRClick);
         $('button#clear').on('click', callbackClearClick);
         $('button#cut').on('click', callbackCutClick);
         $('button#copy').on('click', callbackCopyClick);
