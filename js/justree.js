@@ -321,10 +321,10 @@ window.justree = window.justree || {};
             var nodeSelected = shared.getNodeSelected();
             if (nodeSelected !== null) {
                 var subtreeModified = callback(nodeSelected);
-                if (subtreeModified.isRoot()) {
-                    shared.setNodeRoot(subtreeModified);
-                }
                 if (subtreeModified !== null) {
+                    if (subtreeModified.isRoot()) {
+                        shared.setNodeRoot(subtreeModified);
+                    }
                     console.log('rescanning');
                     debugAssert(shared.getNodeRoot().isSane(), 'Root node insane after edit.');
                     shared.rescanNodeRootSubtree(subtreeModified);
@@ -458,6 +458,20 @@ window.justree = window.justree || {};
             parent.addChild(new tree.RatioNode(1, selected.getRatio(), false));
             return parent;
         }
+    });
+    var callbackAddTChildClick = callbackEditSelectionDecorator(function (selected) {
+        selected.addChild(new tree.RatioNode(0, 1, false));
+        if (selected.getNumChildren() === 1) {
+            selected.addChild(new tree.RatioNode(0, 1, false));
+        }
+        return selected;
+    });
+    var callbackAddFChildClick = callbackEditSelectionDecorator(function (selected) {
+        selected.addChild(new tree.RatioNode(1, 1, false));
+        if (selected.getNumChildren() === 1) {
+            selected.addChild(new tree.RatioNode(1, 1, false));
+        }
+        return selected;
     });
 
 	/* audio */
@@ -881,6 +895,8 @@ window.justree = window.justree || {};
         $('button#move-r').on('click', callbackMoveRClick);
         $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
         $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
+        $('button#add-t-child').on('click', callbackAddTChildClick);
+        $('button#add-f-child').on('click', callbackAddFChildClick);
 
         // clipboard callbacks
         $('button#cut').on('click', callbackCutClick);
