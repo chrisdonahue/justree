@@ -11,6 +11,9 @@ window.justree = window.justree || {};
 			this.ratio = ratio;
 			this.on = on;
 		},
+		getDim: function () {
+			return this.dim;
+		},
 		getRatio: function () {
 			return this.ratio;
 		},
@@ -68,6 +71,25 @@ window.justree = window.justree || {};
 		},
 		addChild: function(child) {
 			this.children.push(child);
+		},
+		swapChildren: function (childIdx0, childIdx1) {
+			var childTemporary = this.getChild(childIdx0);
+			this.setChild(childIdx0, this.getChild(childIdx1));
+			this.setChild(childIdx1, childTemporary);
+		},
+		moveChildLeft: function (childIdx) {
+			var numChildren = this.getNumChildren();
+			if (numChildren > 1) {
+				var childIdxSwap = (childIdx - 1) % numChildren;
+				this.swapChildren(childIdx, childIdxSwap);
+			}
+		},
+		moveChildRight: function (childIdx) {
+			var numChildren = this.getNumChildren();
+			if (numChildren > 1) {
+				var childIdxSwap = (childIdx + 1) % numChildren;
+				this.swapChildren(childIdx, childIdxSwap);
+			}
 		},
 		deleteChildren: function () {
 			this.children = [];
@@ -156,7 +178,7 @@ window.justree = window.justree || {};
 		}
 
 		if (Math.random() >= p) {
-			var childrenNum = 2 + Math.floor(Math.random() * (2 - breadthMax));
+			var childrenNum = 2 + Math.floor(Math.random() * (breadthMax - 1));
 			for (var i = 0; i < childrenNum; ++i) {
 				var child = treeGrow(depthCurr + 1, depthMin, depthMax, breadthMax, pLeaf, nDims, ratios, pOn);
 				child.parent = node;

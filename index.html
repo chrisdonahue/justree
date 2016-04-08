@@ -38,7 +38,7 @@
     </div>
 	<div id="edit">
 		<div id="nav">
-			<p>Navigation</p>
+			<p>Selection</p>
 			<button id="root">Root</button>
 			<button id="parent">Parent</button>
 			<button id="child">Child</button>
@@ -51,19 +51,28 @@
 			<button id="undo" disabled>Undo</button>
 			<button id="redo" disabled>Redo</button>
 		</div>
+		<div id="presets">
+			<p>Presets</p>
+			<select id="tuning" disabled>
+				<option value="equal">Equal</option>
+				<option value="grid">Grid</option>
+				<option value="random">Random</option>
+			</select>
+			<select id="rhythm" disabled>
+				<option value="sixteenth">Sixteenth</option>
+			</select>
+			<button id="preset-generate" disabled>Generate</button>
+		</div>
 		<div id="edit">
 			<p>Edit</p>
-			<button id="ratio-inc">Ratio++</button>
-			<button id="ratio-dec">Ratio--</button>
 			<button id="clear">Clear</button>
-			<button id="cycle-l">Cycle-</button>
-			<button id="cycle-r">Cycle+</button>
-			<button id="child-add-t" disabled>+TChild</button>
-			<button disabled>+FChild</button>
-			<button disabled>Grid</button>
-			<button disabled>Random</button>
-			<button disabled>Swap</button>
-			<button disabled>Reproduce</button>
+			<button id="delete">Delete</button>
+			<button id="ratio-dec">Ratio-</button>
+			<button id="ratio-inc">Ratio+</button>
+			<button id="add-t-sibling">TSib+</button>
+			<button id="add-f-sibling">FSib+</button>
+			<button id="move-l">Move-</button>
+			<button id="move-r">Move+</button>
 		</div>
 		<div id="store">
 			<p>Clipboard</p>

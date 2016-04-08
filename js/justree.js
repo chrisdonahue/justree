@@ -28,6 +28,7 @@ window.justree = window.justree || {};
 	var config = justree.config = {}
 
     // tree params
+    config.breadthMax = 3;
 	config.depthMin = 4;
 	config.depthMax = 6;
 	config.nDims = 2;
@@ -37,13 +38,6 @@ window.justree = window.justree || {};
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
     config.ratiosLen = config.ratios.length;
-    config.debug = true;
-    var debugAssert = function(assertion, msg) {
-        if (config.debug && !assertion) {
-            alert(msg);
-            throw msg;
-        }
-    };
 
     // audio params
     config.blockSize = 1024;
@@ -83,6 +77,15 @@ window.justree = window.justree || {};
     config.reverbLen = 1.5;
     config.reverbDcy = 10.0;
 	
+    // debug
+    config.debug = true;
+    var debugAssert = function(assertion, msg) {
+        if (config.debug && !assertion) {
+            alert(msg);
+            throw msg;
+        }
+    };
+
 	/* shared */
 	var shared = justree.shared = {};
     var PlayheadStateEnum = shared.PlayheadStateEnum = {
@@ -220,10 +223,8 @@ window.justree = window.justree || {};
         });
     };
     var navChildStack = [];
-    var callbackTouchStart = function (event) {
-    };
-    var callbackTouchMove = function (event) {
-    };
+    var callbackTouchStart = function (event) {};
+    var callbackTouchMove = function (event) {};
     var callbackTouchEnd = function (event) {
         var touch = event.changedTouches[0];
         switch (shared.modalState) {
@@ -243,22 +244,18 @@ window.justree = window.justree || {};
                 break;
         }
     };
-    var callbackTouchLeave = function (event) {
-
-    };
-    var callbackTouchCancel = function(event) {
-
-    };
-    var callbackNavRootClick = function (event) {
+    var callbackTouchLeave = function (event) {};
+    var callbackTouchCancel = function(event) {};
+    var callbackRootClick = function (event) {
         shared.nodeSelectedSet(shared.nodeRoot);
     };
-    var callbackNavParentClick = function (event) {
+    var callbackParentClick = function (event) {
         if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
             navChildStack.push(shared.nodeSelected);
             shared.nodeSelectedSet(shared.nodeSelected.parent);
         }
     };
-    var callbackNavSiblingClick = function (event) {
+    var callbackSiblingClick = function (event) {
         if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
             var child = shared.nodeSelected;
             var parent = child.parent;
@@ -271,7 +268,7 @@ window.justree = window.justree || {};
             }
         }
     };
-    var callbackNavChildClick = function (event) {
+    var callbackChildClick = function (event) {
         if (shared.nodeSelected !== null && !shared.nodeSelected.isLeaf()) {
             if (navChildStack.length > 0) {
                 var navChild = navChildStack.pop();
@@ -289,94 +286,132 @@ window.justree = window.justree || {};
             shared.nodeSelectedSet(child);
         }
     };
-    var callbackNavZoomClick = function (event) {
+    var callbackZoomClick = function (event) {
         if (shared.nodeSelected !== null) {
             video.setZoomCell(shared.nodeSelected.cell);
             video.repaint();
         }
     };
-    var callbackCutClick = function () {
-        if (shared.nodeSelected !== null) {
-            shared.nodeClipboard = shared.nodeSelected.getCopy();
-            shared.nodeSelected.deleteChildren();
-            shared.nodeSelectedSet(null);
-            shared.nodeRootScan();
-            video.repaint();
-        }
-        debugAssert(shared.nodeClipboard.isSane(), 'Cut node insane.');
-    };
-    var callbackCopyClick = function () {
-        if (shared.nodeSelected !== null) {
-            shared.nodeClipboard = shared.nodeSelected.getCopy();
-            shared.nodeSelectedSet(null);
-            video.repaint();
-        }
-        debugAssert(shared.nodeClipboard.isSane(), 'Copied node insane.');
-    };
-    var callbackPasteClick = function () {
-        if (shared.nodeSelected !== null && shared.nodeClipboard !== null) {
-            var copy = shared.nodeClipboard.getCopy();
-            if (shared.nodeSelected.isRoot()) {
-                shared.nodeRootSet(copy);
-            }
-            else {
-                var parent = shared.nodeSelected.getParent();
-                var childIdx = parent.getChildIdxForChild(shared.nodeSelected);
-                if (childIdx >= 0) {
-                    copy.setRatio(shared.nodeSelected.getRatio());
-                    parent.setChild(childIdx, copy);
+    var callbackEditSelectionDecorator = function (callback) {
+        return function () {
+            var nodeSelected = shared.getNodeSelected();
+            if (nodeSelected !== null) {
+                var subtreeModified = callback(nodeSelected);
+                if (subtreeModified !== null) {
+                    debugAssert(shared.getNodeRoot().isSane(), 'Root node insane after edit.');
+                    shared.rescanNodeRootSubtree(nodeSelected);
+                    video.repaint();
                 }
             }
-            shared.nodeSelectedSet(null);
-            shared.nodeRootScan();
-            video.repaint();
         }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after paste.');
     };
-    var callbackRatioIncrementClick = function () {
-        if (shared.nodeSelected !== null) {
-            var ratio = shared.nodeSelected.getRatio();
-            shared.nodeSelected.setRatio(ratio + 1);
-            shared.nodeRootScan();
-            video.repaint();
-        }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after ratio++.');
-    };
-    var callbackRatioDecrementClick = function () {
-        if (shared.nodeSelected !== null) {
-            var ratio = shared.nodeSelected.getRatio();
-            if (ratio > 1) {
-                shared.nodeSelected.setRatio(ratio - 1);
-                shared.nodeRootScan();
-                video.repaint();
+    var callbackCutClick = callbackEditSelectionDecorator(function (selected) {
+        shared.clipboardPush(selected.getCopy());
+        selected.deleteChildren();
+        return selected;
+    });
+    var callbackCopyClick = callbackEditSelectionDecorator(function (selected) {
+        shared.clipboardPush(selected.getCopy())
+        return null;
+    });
+    var callbackPasteClick = callbackEditSelectionDecorator(function (selected) {
+        var nodeClipboard = shared.clipboardPeek();
+        if (nodeClipboard !== null) {
+            var copy = shared.nodeClipboard.getCopy();
+            if (selected.isRoot()) {
+                shared.nodeRootSet(copy);
+                return shared.nodeRootGet();
+            }
+            else {
+                var parent = selected.getParent();
+                var childIdx = parent.getChildIdxForChild(selected);
+                if (childIdx >= 0) {
+                    copy.setRatio(selected.getRatio());
+                    parent.setChild(childIdx, copy);
+                    return parent;
+                }
             }
         }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after ratio--.');
-    };
-    var callbackClearClick = function () {
-        if (shared.nodeSelected !== null) {
-            shared.nodeSelected.deleteChildren();
-            shared.nodeRootScan();
-            video.repaint();
+        return null;
+    });
+    var callbackClearClick = callbackEditSelectionDecorator(function (selected) {
+        var selectedIsLeaf = selected.isLeaf();
+        if (!selectedIsLeaf) {
+            selected.deleteChildren();
+            return selected;
         }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after clear.');
-    };
-    var callbackCycleLClick = function () {
-        if (shared.nodeSelected !== null) {
-            shared.nodeSelected.rotateChildrenLeft();
-            shared.nodeRootScan();
-            video.repaint();
+        return null;
+    });
+    var callbackDeleteClick = callbackEditSelectionDecorator(function (selected) {
+
+    });
+    var callbackRatioDecrementClick = callbackEditSelectionDecorator(function (selected) {
+        var ratio = selected.getRatio();
+        if (ratio > 1.0) {
+            selected.setRatio(ratio - 1.0);
+            return selected;
         }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after cycleL.');
-    };
-    var callbackCycleRClick = function () {
-        if (shared.nodeSelected !== null) {
-            shared.nodeSelected.rotateChildrenRight();
-            shared.nodeRootScan();
-            video.repaint();
+        return null;
+    });
+    var callbackRatioIncrementClick = callbackEditSelectionDecorator(function (selected) {
+        var ratio = selected.getRatio();
+        selected.setRatio(ratio + 1.0);
+        return selected;
+    });
+    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            rootNew.addChild(selected);
+            rootNew.addChild(new tree.RatioNode(0, selected.getRatio(), false))
+            return rootNew;
         }
-        debugAssert(shared.nodeRoot.isSane(), 'Root insane after cycleR.');
-    };
+        else {
+            var parent = selected.getParent();
+            parent.addChild(new tree.RatioNode(0, selected.getRatio(), false));
+            return parent;
+        }
+    });
+    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            rootNew.addChild(selected);
+            rootNew.addChild(new tree.RatioNode(1, selected.getRatio(), false))
+            return rootNew;
+        }
+        else {
+            var parent = selected.getParent();
+            parent.addChild(new tree.RatioNode(1, selected.getRatio(), false));
+            return parent;
+        }
+    });
+    var callbackMoveLClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            return null;
+        }
+        else {
+            var parent = selected.getParent();
+            var childIdx = parent.getChildIdxForChild(selected);
+            if (childIdx >= 0) {
+                parent.moveChildLeft(childIdx);
+                return parent;
+            }
+        }
+        return null;
+    });
+    var callbackMoveRClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            return null;
+        }
+        else {
+            var parent = selected.getParent();
+            var childIdx = parent.getChildIdxForChild(selected);
+            if (childIdx >= 0) {
+                parent.moveChildRight(childIdx);
+                return parent;
+            }
+        }
+        return null;
+    });
 
 	/* audio */
 	var audio = justree.audio = {};
@@ -711,13 +746,13 @@ window.justree = window.justree || {};
 			var cell = shared.leafCellsSorted[i];
             var absBb = relBbToAbsBb(cell);
             if (cell.node.on) {
-                ctx.fillStyle = 'rgb(255, 255, 255)';
+                ctx.fillStyle = 'rgb(200, 200, 200)';
             }
             else {
-                ctx.fillStyle = 'rgb(0, 0, 0)';
+                ctx.fillStyle = 'rgb(25, 25, 25)';
             }
             ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
-            ctx.strokeStyle = 'rgb(0, 0, 255)';
+            ctx.strokeStyle = 'rgb(0, 255, 255)';
             ctx.rect(absBb.x, absBb.y, absBb.width, absBb.height);
             ctx.stroke();
 		}
@@ -725,7 +760,7 @@ window.justree = window.justree || {};
         // draw selected
         if (shared.nodeSelected !== null) {
             var cellSelected = shared.nodeSelected.cell;
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+            ctx.fillStyle = 'rgba(255, 0, 100, 0.5)';
             var absBb = relBbToAbsBb(cellSelected);
             ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
         }
@@ -748,7 +783,7 @@ window.justree = window.justree || {};
 		video.init('justree-ui');
 		
 		// generate tree
-		var root = tree.treeGrow(0, config.depthMin, config.depthMax, 3, config.pTerm, config.nDims, config.ratios, config.pOn);
+		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.breadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
 		shared.nodeRootSet(root);
         shared.nodeRootScan();
 
@@ -767,21 +802,6 @@ window.justree = window.justree || {};
             $('div#edit').show();
         });
 
-        // button callbacks
-        $('button#parent').on('click', callbackNavParentClick);
-        $('button#sibling').on('click', callbackNavSiblingClick);
-        $('button#child').on('click', callbackNavChildClick);
-        $('button#root').on('click', callbackNavRootClick);
-        $('button#zoom').on('click', callbackNavZoomClick);
-        $('button#ratio-inc').on('click', callbackRatioIncrementClick);
-        $('button#ratio-dec').on('click', callbackRatioDecrementClick);
-        $('button#cycle-l').on('click', callbackCycleLClick);
-        $('button#cycle-r').on('click', callbackCycleRClick);
-        $('button#clear').on('click', callbackClearClick);
-        $('button#cut').on('click', callbackCutClick);
-        $('button#copy').on('click', callbackCopyClick);
-        $('button#paste').on('click', callbackPasteClick);
-
         // canvas mouse/touch events
         if (window.supportsTouchEvents) {
             $('#justree-ui').on('touchstart', callbackTouchStart);
@@ -798,11 +818,33 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
 
+        // selection callbacks
+        $('button#parent').on('click', callbackParentClick);
+        $('button#sibling').on('click', callbackSiblingClick);
+        $('button#child').on('click', callbackChildClick);
+        $('button#root').on('click', callbackRootClick);
+        $('button#zoom').on('click', callbackZoomClick);
+
+        // edit selection callbacks
+        $('button#clear').on('click', callbackClearClick);
+        $('button#delete').on('click', callbackDeleteClick);
+        $('button#ratio-dec').on('click', callbackRatioDecrementClick);
+        $('button#ratio-inc').on('click', callbackRatioIncrementClick);
+        $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
+        $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
+        $('button#move-l').on('click', callbackMoveLClick);
+        $('button#move-r').on('click', callbackMoveRClick);
+
+        // clipboard callbacks
+        $('button#cut').on('click', callbackCutClick);
+        $('button#copy').on('click', callbackCopyClick);
+        $('button#paste').on('click', callbackPasteClick);
+
         // tabs
         //$('#tabs').tabs({active: 1});
         //$('button').button();
 
-        // DOM callbacks
+        // audio callbacks
 		//$('body').css({'overflow': 'hidden'});
         $('#playback #play').on('click', ui.callbackPlayClick);
         $('#playback #loop').on('click', ui.callbackLoopClick);
@@ -814,9 +856,12 @@ window.justree = window.justree || {};
         $('#effects input[name=reverb]').on('change', ui.callbackReverbToggle);
         ui.callbackReverbToggle();
 
+        // viewport resize callback
 		$(window).resize(video.callbackWindowResize);
+        video.callbackWindowResize();
+
+        // start animation
 		window.requestAnimationFrame(video.animate);
-		video.callbackWindowResize();
 	};
 	$(document).ready(callbackDomReady);
 
