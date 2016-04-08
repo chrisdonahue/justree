@@ -432,6 +432,13 @@ window.justree = window.justree || {};
         }
         return null;
     });
+    var callbackFlipClick = callbackEditSelectionDecorator(function flipRecursive(subtree) {
+        var dim = subtree.getDim();
+        dim = modPls(dim + 1, 2);
+        subtree.setDim(dim);
+        subtree.forEachChild(flipRecursive);
+        return subtree;
+    });
     var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isRoot()) {
             var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
@@ -440,7 +447,6 @@ window.justree = window.justree || {};
             return rootNew;
         }
         else {
-            console.log('parent');
             var parent = selected.getParent();
             parent.addChild(new tree.RatioNode(0, selected.getRatio(), false));
             return parent;
@@ -893,6 +899,7 @@ window.justree = window.justree || {};
         $('button#ratio-inc').on('click', callbackRatioIncrementClick);
         $('button#move-l').on('click', callbackMoveLClick);
         $('button#move-r').on('click', callbackMoveRClick);
+        $('button#flip').on('click', callbackFlipClick);
         $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
         $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
         $('button#add-t-child').on('click', callbackAddTChildClick);

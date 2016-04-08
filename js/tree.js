@@ -3,11 +3,6 @@ window.justree = window.justree || {};
 (function (ObjectBase, justree) {
 	var tree = justree.tree = {};
 
-	var helpers = {};
-	helpers.mod = function (n, m) {
-		return ((n % m) + m) % m;
-	}
-	
 	var RatioNode = tree.RatioNode = ObjectBase.extend({
 		constructor: function (dim, ratio, on) {
             this.parent = null;
@@ -18,6 +13,9 @@ window.justree = window.justree || {};
 		},
 		getDim: function () {
 			return this.dim;
+		},
+		setDim: function (dim) {
+			this.dim = dim;
 		},
 		getRatio: function () {
 			return this.ratio;
@@ -86,14 +84,14 @@ window.justree = window.justree || {};
 		moveChildLeft: function (childIdx) {
 			var numChildren = this.getNumChildren();
 			if (numChildren > 1) {
-				var childIdxSwap = helpers.mod(childIdx - 1, numChildren);
+				var childIdxSwap = modPls(childIdx - 1, numChildren);
 				this.swapChildren(childIdx, childIdxSwap);
 			}
 		},
 		moveChildRight: function (childIdx) {
 			var numChildren = this.getNumChildren();
 			if (numChildren > 1) {
-				var childIdxSwap = helpers.mod(childIdx + 1, numChildren);
+				var childIdxSwap = modPls(childIdx + 1, numChildren);
 				this.swapChildren(childIdx, childIdxSwap);
 			}
 		},
@@ -140,6 +138,11 @@ window.justree = window.justree || {};
         },
 		isLeaf: function () {
 			return this.getNumChildren() === 0;
+		},
+		forEachChild: function (fun) {
+			for (var i = 0; i < this.getNumChildren(); ++i) {
+				fun(this.getChild(i));
+			}
 		},
 		toString: function () {
 			var string = '(' + String(this.ratio);
