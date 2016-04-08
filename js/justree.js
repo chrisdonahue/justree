@@ -29,8 +29,8 @@ window.justree = window.justree || {};
 
     // tree params
     config.breadthMax = 3;
-	config.depthMin = 4;
-	config.depthMax = 6;
+	config.depthMin = 2;
+	config.depthMax = 3;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.0;
@@ -98,6 +98,40 @@ window.justree = window.justree || {};
         'EDIT': 1,
         'SHARE': 2
     };
+    shared.init = function () {
+        shared.playheadState = PlayheadStateEnum.STOPPED;
+        shared.playheadPosRel = 0.0;
+        shared.nodeClipboard = null;
+        shared.nodeRoot = null;
+        shared.nodeSelected = null;
+        shared.leafCellsSorted = [];
+        shared.modalState = ModalEnum.EDIT;
+    };
+    shared.clearNodeClipboard = function () {
+        shared.nodeClipboard = null;
+    };
+    shared.pushNodeClipboard = function (node) {
+        shared.nodeClipboard = node;
+    };
+    shared.peekNodeClipboard = function () {
+        return shared.nodeClipboard;
+    };
+    shared.getNodeSelected = function () {
+        return shared.nodeSelected;
+    };
+    shared.setNodeSelected = function(nodeSelected) {
+        shared.nodeSelected = nodeSelected;
+    };
+    shared.clearNodeSelected = function () {
+        shared.nodeSelected = null;
+    };
+    shared.getNodeRoot = function () {
+        return shared.nodeRoot;
+    };
+    shared.setNodeRoot = function(nodeRoot) {
+        shared.nodeRoot = nodeRoot;
+        shared.leafCellsSorted = [];
+    };
     shared.parseNodeRoot = function (node, depth, x, y, width, height) {
         if (node === undefined) {
             node = shared.nodeRoot;
@@ -151,40 +185,30 @@ window.justree = window.justree || {};
             }
         }
     };
-    shared.init = function () {
-        shared.playheadState = PlayheadStateEnum.STOPPED;
-        shared.playheadPosRel = 0.0;
-        shared.nodeClipboard = null;
-        shared.nodeRoot = null;
-        shared.nodeSelected = null;
+    shared.rescanNodeRootSubtree = function (subtree) {
+        subtree = subtree !== undefined ? subtree : shared.getNodeRoot();
+
         shared.leafCellsSorted = [];
-        shared.modalState = ModalEnum.EDIT;
-    };
-    shared.nodeRootSet = function(nodeRoot) {
-        shared.nodeRoot = nodeRoot;
-        shared.nodeSelected = null;
-        shared.leafCellsSorted = [];
-    };
-    shared.nodeRootScan = function () {
-        shared.leafCellsSorted = [];
-        shared.parseNodeRoot();
-        // sort by x ascending then y descending
-        shared.leafCellsSorted.sort(function (a, b) {
-            var aX = a[2];
-            var aY = a[3];
-            var bX = b[2];
-            var bY = b[3];
-            if (aX != bX) {
-                return aX - bX;
-            }
-            else {
-                return bY - aY;
-            }
-        });
-        $('#string').html(shared.nodeRoot.toString());
-    };
-    shared.nodeSelectedSet = function(nodeSelected) {
-        shared.nodeSelected = nodeSelected;
+        if (subtree !== null) {
+            shared.parseNodeRoot();
+            // sort by x ascending then y descending
+            shared.leafCellsSorted.sort(function (a, b) {
+                var aX = a[2];
+                var aY = a[3];
+                var bX = b[2];
+                var bY = b[3];
+                if (aX != bX) {
+                    return aX - bX;
+                }
+                else {
+                    return bY - aY;
+                }
+            });
+            $('#string').html(shared.nodeRoot.toString());
+        }
+        else {
+            $('#string').html('null');
+        }
     };
 
 	/* ui */
@@ -236,7 +260,7 @@ window.justree = window.justree || {};
             case ModalEnum.EDIT:
                 var touch = event.changedTouches[0];
                 var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
-                shared.nodeSelectedSet(nodeSelected);
+                shared.setNodeSelected(nodeSelected);
                 navChildStack = [];
                 video.repaint();
                 break;
@@ -247,12 +271,12 @@ window.justree = window.justree || {};
     var callbackTouchLeave = function (event) {};
     var callbackTouchCancel = function(event) {};
     var callbackRootClick = function (event) {
-        shared.nodeSelectedSet(shared.nodeRoot);
+        shared.setNodeSelected(shared.nodeRoot);
     };
     var callbackParentClick = function (event) {
         if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
             navChildStack.push(shared.nodeSelected);
-            shared.nodeSelectedSet(shared.nodeSelected.parent);
+            shared.setNodeSelected(shared.nodeSelected.parent);
         }
     };
     var callbackSiblingClick = function (event) {
@@ -262,7 +286,7 @@ window.justree = window.justree || {};
             if (parent !== null) {
                 var childIdx = parent.getChildIdxForChild(child);
                 if (childIdx >= 0) {
-                    shared.nodeSelectedSet(parent.getChild((childIdx + 1) % parent.getNumChildren()));
+                    shared.setNodeSelected(parent.getChild((childIdx + 1) % parent.getNumChildren()));
                 }
                 navChildStack = [];
             }
@@ -274,7 +298,7 @@ window.justree = window.justree || {};
                 var navChild = navChildStack.pop();
                 var navChildIdx = shared.nodeSelected.getChildIdxForChild(navChild);
                 if (navChildIdx >= 0) {
-                    shared.nodeSelectedSet(navChild);
+                    shared.setNodeSelected(navChild);
                     return;
                 }
                 else {
@@ -283,7 +307,7 @@ window.justree = window.justree || {};
             }
 
             var child = shared.nodeSelected.getChild(Math.floor(Math.random() * shared.nodeSelected.getNumChildren()));
-            shared.nodeSelectedSet(child);
+            shared.setNodeSelected(child);
         }
     };
     var callbackZoomClick = function (event) {
@@ -297,30 +321,36 @@ window.justree = window.justree || {};
             var nodeSelected = shared.getNodeSelected();
             if (nodeSelected !== null) {
                 var subtreeModified = callback(nodeSelected);
+                if (subtreeModified.isRoot()) {
+                    shared.setNodeRoot(subtreeModified);
+                }
                 if (subtreeModified !== null) {
+                    console.log('rescanning');
                     debugAssert(shared.getNodeRoot().isSane(), 'Root node insane after edit.');
-                    shared.rescanNodeRootSubtree(nodeSelected);
+                    shared.rescanNodeRootSubtree(subtreeModified);
                     video.repaint();
                 }
             }
         }
     };
     var callbackCutClick = callbackEditSelectionDecorator(function (selected) {
-        shared.clipboardPush(selected.getCopy());
+        shared.pushNodeClipboard(selected.getCopy());
         selected.deleteChildren();
+        shared.clearNodeSelected();
         return selected;
     });
     var callbackCopyClick = callbackEditSelectionDecorator(function (selected) {
-        shared.clipboardPush(selected.getCopy())
+        shared.pushNodeClipboard(selected.getCopy())
+        shared.clearNodeSelected();
         return null;
     });
     var callbackPasteClick = callbackEditSelectionDecorator(function (selected) {
-        var nodeClipboard = shared.clipboardPeek();
+        var nodeClipboard = shared.peekNodeClipboard();
         if (nodeClipboard !== null) {
             var copy = shared.nodeClipboard.getCopy();
             if (selected.isRoot()) {
-                shared.nodeRootSet(copy);
-                return shared.nodeRootGet();
+                shared.setNodeRoot(copy);
+                return shared.getNodeRoot();
             }
             else {
                 var parent = selected.getParent();
@@ -335,15 +365,31 @@ window.justree = window.justree || {};
         return null;
     });
     var callbackClearClick = callbackEditSelectionDecorator(function (selected) {
-        var selectedIsLeaf = selected.isLeaf();
-        if (!selectedIsLeaf) {
+        if (!selected.isLeaf()) {
             selected.deleteChildren();
             return selected;
         }
         return null;
     });
     var callbackDeleteClick = callbackEditSelectionDecorator(function (selected) {
-
+        if (selected.isRoot()) {
+            callbackClearClick(selected);
+            shared.clearNodeSelected();
+            return selected;
+        }
+        else {
+            var parent = selected.getParent();
+            var childIdx = parent.getChildIdxForChild(selected);
+            if (childIdx >= 0) {
+                parent.deleteChild(childIdx);
+                shared.clearNodeSelected();
+                if (parent.getNumChildren() === 1) {
+                    parent.deleteChild(0);
+                }
+                return parent;
+            }
+        }
+        return null;
     });
     var callbackRatioDecrementClick = callbackEditSelectionDecorator(function (selected) {
         var ratio = selected.getRatio();
@@ -357,32 +403,6 @@ window.justree = window.justree || {};
         var ratio = selected.getRatio();
         selected.setRatio(ratio + 1.0);
         return selected;
-    });
-    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
-        if (selected.isRoot()) {
-            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
-            rootNew.addChild(selected);
-            rootNew.addChild(new tree.RatioNode(0, selected.getRatio(), false))
-            return rootNew;
-        }
-        else {
-            var parent = selected.getParent();
-            parent.addChild(new tree.RatioNode(0, selected.getRatio(), false));
-            return parent;
-        }
-    });
-    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
-        if (selected.isRoot()) {
-            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
-            rootNew.addChild(selected);
-            rootNew.addChild(new tree.RatioNode(1, selected.getRatio(), false))
-            return rootNew;
-        }
-        else {
-            var parent = selected.getParent();
-            parent.addChild(new tree.RatioNode(1, selected.getRatio(), false));
-            return parent;
-        }
     });
     var callbackMoveLClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isRoot()) {
@@ -411,6 +431,33 @@ window.justree = window.justree || {};
             }
         }
         return null;
+    });
+    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            rootNew.addChild(selected);
+            rootNew.addChild(new tree.RatioNode(0, selected.getRatio(), false))
+            return rootNew;
+        }
+        else {
+            console.log('parent');
+            var parent = selected.getParent();
+            parent.addChild(new tree.RatioNode(0, selected.getRatio(), false));
+            return parent;
+        }
+    });
+    var callbackAddFSiblingClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isRoot()) {
+            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            rootNew.addChild(selected);
+            rootNew.addChild(new tree.RatioNode(1, selected.getRatio(), false))
+            return rootNew;
+        }
+        else {
+            var parent = selected.getParent();
+            parent.addChild(new tree.RatioNode(1, selected.getRatio(), false));
+            return parent;
+        }
     });
 
 	/* audio */
@@ -784,15 +831,15 @@ window.justree = window.justree || {};
 		
 		// generate tree
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.breadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
-		shared.nodeRootSet(root);
-        shared.nodeRootScan();
+		shared.setNodeRoot(root);
+        shared.rescanNodeRootSubtree();
 
         // modal callbacks
         $('button#hear').on('click', function () {
             shared.modalState = ModalEnum.HEAR;
             $('div#edit').hide();
             $('div#hear').show();
-            shared.nodeSelectedSet(null);
+            shared.clearNodeSelected();
             navChildStack = [];
             video.repaint();
         });
@@ -830,10 +877,10 @@ window.justree = window.justree || {};
         $('button#delete').on('click', callbackDeleteClick);
         $('button#ratio-dec').on('click', callbackRatioDecrementClick);
         $('button#ratio-inc').on('click', callbackRatioIncrementClick);
-        $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
-        $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
         $('button#move-l').on('click', callbackMoveLClick);
         $('button#move-r').on('click', callbackMoveRClick);
+        $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
+        $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
 
         // clipboard callbacks
         $('button#cut').on('click', callbackCutClick);
