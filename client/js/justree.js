@@ -957,6 +957,11 @@ window.justree = window.justree || {};
             server.connect($('#server #ip').val(), $('#server #port').val());
         });
         $('button#disconnect').on('click', server.disconnect)
+        $('button#osc-send').on('click', function () {
+            var oscAddress = $('#server #osc-address').val();
+            var oscParameters = JSON.parse($('#server #osc-params').val());
+            server.sendOsc(oscAddress, oscParameters);
+        });
 
         // selection callbacks
         $('button#parent').on('click', callbackParentClick);
