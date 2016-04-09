@@ -253,9 +253,9 @@ window.justree = window.justree || {};
     var callbackTouchStart = function (event) {};
     var callbackTouchMove = function (event) {};
     var callbackTouchEnd = function (event) {
-        console.log(event);
-        for (var i = 0; i < event.changedTouches.length; ++i) {
-            var touch = event.changedTouches[i];
+        var touchEvent = event.originalEvent;
+        for (var i = 0; i < touchEvent.changedTouches.length; ++i) {
+            var touch = touchEvent.changedTouches[i];
             var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
             if (nodeSelected === null) {
                 continue;
