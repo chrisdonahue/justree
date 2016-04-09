@@ -29,8 +29,8 @@ window.justree = window.justree || {};
 
     // tree params
     config.breadthMax = 3;
-	config.depthMin = 2;
-	config.depthMax = 3;
+	config.depthMin = 1;
+	config.depthMax = 2;
 	config.nDims = 2;
 	config.pTerm = 0.5;
 	config.pOn = 0.0;
@@ -210,6 +210,9 @@ window.justree = window.justree || {};
             $('#string').html('null');
         }
     };
+    shared.getLeafCellsSorted = function () {
+        return shared.leafCellsSorted;
+    };
 
 	/* ui */
 	var ui = justree.ui = {};
@@ -271,46 +274,53 @@ window.justree = window.justree || {};
     var callbackTouchLeave = function (event) {};
     var callbackTouchCancel = function(event) {};
     var callbackRootClick = function (event) {
-        shared.setNodeSelected(shared.nodeRoot);
-    };
-    var callbackParentClick = function (event) {
-        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
-            navChildStack.push(shared.nodeSelected);
-            shared.setNodeSelected(shared.nodeSelected.parent);
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected === null) {
+            callbackLeafClick();
+        }
+        while (!shared.getNodeSelected().isRoot()) {
+            callbackParentClick();
         }
     };
-    var callbackSiblingClick = function (event) {
-        if (shared.nodeSelected !== null && shared.nodeSelected.parent !== null) {
-            var child = shared.nodeSelected;
-            var parent = child.parent;
-            if (parent !== null) {
-                var childIdx = parent.getChildIdxForChild(child);
-                if (childIdx >= 0) {
-                    shared.setNodeSelected(parent.getChild((childIdx + 1) % parent.getNumChildren()));
-                }
-                navChildStack = [];
+    var callbackParentClick = function () {
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected !== null && !nodeSelected.isRoot()) {
+            navChildStack.push(nodeSelected);
+            shared.setNodeSelected(nodeSelected.getParent());
+        }
+    };
+    var callbackSiblingClick = function () {
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected !== null && !nodeSelected.isRoot()) {
+            var parent = nodeSelected.getParent();
+            var childIdx = parent.getChildIdxForChild(nodeSelected);
+            shared.setNodeSelected(parent.getChild((childIdx + 1) % parent.getNumChildren()));
+            navChildStack = [];
+        }
+    };
+    var callbackChildClick = function () {
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected !== null && !nodeSelected.isLeaf()) {
+            var navChild = navChildStack.pop();
+            var navChildIdx = shared.nodeSelected.getChildIdxForChild(navChild);
+            shared.setNodeSelected(navChild);
+        }
+    };
+    var callbackLeafClick = function () { 
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected === null) {
+            var leafCellsSorted = shared.getLeafCellsSorted();
+            var leafCellRandom = leafCellsSorted[Math.floor(Math.random() * leafCellsSorted.length)];
+            shared.setNodeSelected(leafCellRandom.node);
+            navChildStack = [];
+        }
+        else {
+            while (!shared.getNodeSelected().isLeaf()) {
+                callbackChildClick();
             }
         }
     };
-    var callbackChildClick = function (event) {
-        if (shared.nodeSelected !== null && !shared.nodeSelected.isLeaf()) {
-            if (navChildStack.length > 0) {
-                var navChild = navChildStack.pop();
-                var navChildIdx = shared.nodeSelected.getChildIdxForChild(navChild);
-                if (navChildIdx >= 0) {
-                    shared.setNodeSelected(navChild);
-                    return;
-                }
-                else {
-                    navChildStack = []
-                }
-            }
-
-            var child = shared.nodeSelected.getChild(Math.floor(Math.random() * shared.nodeSelected.getNumChildren()));
-            shared.setNodeSelected(child);
-        }
-    };
-    var callbackZoomClick = function (event) {
+    var callbackZoomClick = function () {
         if (shared.nodeSelected !== null) {
             video.setZoomCell(shared.nodeSelected.cell);
             video.repaint();
@@ -438,6 +448,28 @@ window.justree = window.justree || {};
         subtree.setDim(dim);
         subtree.forEachChild(flipRecursive);
         return subtree;
+    });
+    var callbackSplitTClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isLeaf()) {
+            selected.setDim(0);
+            selected.addChild(new tree.RatioNode(0, 1, false));
+            selected.addChild(new tree.RatioNode(0, 1, false));
+            return selected;
+        }
+        else {
+            return null;
+        }
+    });
+    var callbackSplitFClick = callbackEditSelectionDecorator(function (selected) {
+        if (selected.isLeaf()) {
+            selected.setDim(1);
+            selected.addChild(new tree.RatioNode(1, 1, false));
+            selected.addChild(new tree.RatioNode(1, 1, false));
+            return selected;
+        }
+        else {
+            return null;
+        }
     });
     var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isRoot()) {
@@ -890,6 +922,7 @@ window.justree = window.justree || {};
         $('button#sibling').on('click', callbackSiblingClick);
         $('button#child').on('click', callbackChildClick);
         $('button#root').on('click', callbackRootClick);
+        $('button#leaf').on('click', callbackLeafClick);
         $('button#zoom').on('click', callbackZoomClick);
 
         // edit selection callbacks
@@ -900,6 +933,8 @@ window.justree = window.justree || {};
         $('button#move-l').on('click', callbackMoveLClick);
         $('button#move-r').on('click', callbackMoveRClick);
         $('button#flip').on('click', callbackFlipClick);
+        $('button#split-t').on('click', callbackSplitTClick);
+        $('button#split-f').on('click', callbackSplitFClick);
         $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
         $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
         $('button#add-t-child').on('click', callbackAddTChildClick);
