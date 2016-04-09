@@ -253,29 +253,33 @@ window.justree = window.justree || {};
     var callbackTouchStart = function (event) {};
     var callbackTouchMove = function (event) {};
     var callbackTouchEnd = function (event) {
-        var touch = event.changedTouches[0];
-        switch (shared.modalState) {
-            case ModalEnum.HEAR:
-                var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
-                nodeSelected.on = !nodeSelected.on;
-                video.repaint();
-                break;
-            case ModalEnum.EDIT:
-                var touch = event.changedTouches[0];
-                var nodeSelectedPrev = shared.getNodeSelected();
-                var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
-                var disable = nodeSelectedPrev === nodeSelected;
-                if (disable) {
-                    shared.setNodeSelected(null);
-                }
-                else {
-                    shared.setNodeSelected(nodeSelected);                    
-                }
-                navChildStack = [];
-                video.repaint();
-                break;
-            default:
-                break;
+        for (var i = 0; i < event.changedTouches.length; ++i) {
+            var touch = event.changedTouches[i];
+            var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
+            if (nodeSelected === null) {
+                continue;
+            }
+
+            switch (shared.modalState) {
+                case ModalEnum.HEAR:
+                    nodeSelected.on = !nodeSelected.on;
+                    video.repaint();
+                    break;
+                case ModalEnum.EDIT:
+                    var nodeSelectedPrev = shared.getNodeSelected();
+                    var disable = nodeSelectedPrev === nodeSelected;
+                    if (disable) {
+                        shared.setNodeSelected(null);
+                    }
+                    else {
+                        shared.setNodeSelected(nodeSelected);                    
+                    }
+                    navChildStack = [];
+                    video.repaint();
+                    break;
+                default:
+                    break;
+            }
         }
     };
     var callbackTouchLeave = function (event) {};
@@ -841,7 +845,6 @@ window.justree = window.justree || {};
         }
         else {
             zoomBb = zoomCell;
-            console.log(zoomCell);
         }
 
         var relBbToAbsBb = function (relBb) {
