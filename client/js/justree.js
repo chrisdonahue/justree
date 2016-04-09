@@ -358,7 +358,6 @@ window.justree = window.justree || {};
                     if (subtreeModified.isRoot()) {
                         shared.setNodeRoot(subtreeModified);
                     }
-                    console.log('rescanning');
                     debugAssert(shared.getNodeRoot().isSane(), 'Root node insane after edit.');
                     shared.rescanNodeRootSubtree(subtreeModified);
                     video.repaint();
