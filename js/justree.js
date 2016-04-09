@@ -315,11 +315,13 @@ window.justree = window.justree || {};
                     shared.setNodeSelected(navChild);
                 }
                 else {
+                    // we have edited this subtree so fallback to random
                     navChildStack = [];
                     shared.setNodeSelected(nodeSelected.getRandomChild());
                 }
             }
             else {
+                // cant exactly remember how this would happen but we're covered
                 shared.setNodeSelected(nodeSelected.getRandomChild());
             }
         }
