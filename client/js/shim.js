@@ -75,9 +75,8 @@
 
 	window.mouseToTouchEvent = function (callback) {
 		return function(event) {
-			event.consumed = false;
-			event.changedTouches = [];
-			event.changedTouches.push({
+			event.originalEvent.changedTouches = [];
+			event.originalEvent.changedTouches.push({
 				clientX: event.offsetX || -1,
 				clientY: event.offsetY || -1,
 				identifier: 'mouse'
