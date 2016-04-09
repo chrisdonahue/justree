@@ -15,6 +15,7 @@ window.justree = window.justree || {};
     var dsp = justree.dsp;
     var tree = justree.tree;
     var saturate = justree.saturate;
+    var server = justree.server;
 
 	/* defines */
 	var defines = justree.defines = {};
@@ -96,6 +97,7 @@ window.justree = window.justree || {};
     var ModalEnum = shared.ModalEnum = {
         'HEAR': 0,
         'EDIT': 1,
+        'SERVER': 3,
         'SHARE': 2
     };
     shared.init = function () {
@@ -901,6 +903,7 @@ window.justree = window.justree || {};
 		ui.init();
 		audio.init();
 		video.init('justree-ui');
+        server.init();
 		
 		// generate tree
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.breadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
@@ -908,8 +911,15 @@ window.justree = window.justree || {};
         shared.rescanNodeRootSubtree();
 
         // modal callbacks
+        $('button#server').on('click', function () {
+            shared.modalState = ModalEnum.SERVER;
+            $('div#server').show();
+            $('div#hear').hide();
+            $('div#edit').hide();
+        });
         $('button#hear').on('click', function () {
             shared.modalState = ModalEnum.HEAR;
+            $('div#server').hide();
             $('div#edit').hide();
             $('div#hear').show();
             shared.clearNodeSelected();
@@ -918,6 +928,7 @@ window.justree = window.justree || {};
         });
         $('button#edit').on('click', function () {
             shared.modalState = ModalEnum.EDIT;
+            $('div#server').hide();
             $('div#hear').hide();
             $('div#edit').show();
         });
@@ -937,6 +948,12 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
+
+        // server callbacks
+        $('button#connect').on('click', function () {
+            server.connect($('#server #ip').val(), $('#server #port').val());
+        });
+        $('button#disconnect').on('click', server.disconnect)
 
         // selection callbacks
         $('button#parent').on('click', callbackParentClick);

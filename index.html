@@ -16,8 +16,15 @@
 
 <body>
 	<div id="mode">
+		<button id="server">Server</button>
 		<button id="hear">Hear</button>
 		<button id="edit">Edit</button>
+	</div>
+	<div id="server" hidden>
+		<p>Server IP</p><input type="text" id="ip">
+		<p>Server Port</p><input type="text" id="port"><br>
+		<button id="connect">Connect</button>
+		<button id="disconnect">Disconnect</button>
 	</div>
     <div id="hear" hidden>
 		<div id="playback">
@@ -110,12 +117,15 @@
 
 	<script type="text/javascript" src="js/lib/underscore-1.8.3.js"></script>
 	<script type="text/javascript" src="js/lib/jquery-1.12.2.js"></script>
+	<script type="text/javascript" src="js/lib/osc-browser.min.js"></script>
+	<script type="text/javascript" src="js/lib/fingerprint.js"></script>
 
 	<script type="text/javascript" src="js/shim.js"></script>
 
 	<script type="text/javascript" src="js/tree.js"></script>
 	<script type="text/javascript" src="js/dsp.js"></script>
 	<script type="text/javascript" src="js/saturate.js"></script>
+	<script type="text/javascript" src="js/server.js"></script>
 	<script type="text/javascript" src="js/justree.js"></script>
 </body>
 </html>
