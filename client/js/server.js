@@ -52,7 +52,9 @@ window.justree = window.justree || {};
 	};
 
 	server.disconnect = function () {
-		server.socketOsc.close();
+		if (server.connected) {
+			server.socketOsc.close();
+		}
 		server.connected = false;
 		server.socketOsc = null;
 	};
