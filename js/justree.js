@@ -256,14 +256,21 @@ window.justree = window.justree || {};
         var touch = event.changedTouches[0];
         switch (shared.modalState) {
             case ModalEnum.HEAR:
-                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
+                var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
                 nodeSelected.on = !nodeSelected.on;
                 video.repaint();
                 break;
             case ModalEnum.EDIT:
                 var touch = event.changedTouches[0];
-                var nodeSelected = video.posAbsToNode(touch.clientX, touch.clientY);
-                shared.setNodeSelected(nodeSelected);
+                var nodeSelectedPrev = shared.getNodeSelected();
+                var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
+                var disable = nodeSelectedPrev === nodeSelected;
+                if (disable) {
+                    shared.setNodeSelected(null);
+                }
+                else {
+                    shared.setNodeSelected(nodeSelected);                    
+                }
                 navChildStack = [];
                 video.repaint();
                 break;
@@ -781,7 +788,7 @@ window.justree = window.justree || {};
 			video.repaint(video.canvasCtx, video.root, 0, 0, video.canvasWidth, video.canvasHeight);
 		}
 	};
-    video.posAbsToNode = function (x, y) {
+    video.posAbsToLeafNode = function (x, y) {
         var width = video.canvasWidth;
         var height = video.canvasHeight;
         for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
