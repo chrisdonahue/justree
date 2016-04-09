@@ -308,9 +308,20 @@ window.justree = window.justree || {};
     var callbackChildClick = function () {
         var nodeSelected = shared.getNodeSelected();
         if (nodeSelected !== null && !nodeSelected.isLeaf()) {
-            var navChild = navChildStack.pop();
-            var navChildIdx = shared.nodeSelected.getChildIdxForChild(navChild);
-            shared.setNodeSelected(navChild);
+            if (navChildStack.length > 0) {
+                var navChild = navChildStack.pop();
+                var navChildIdx = nodeSelected.getChildIdxForChild(navChild);
+                if (navChildIdx >= 0) {
+                    shared.setNodeSelected(navChild);
+                }
+                else {
+                    navChildStack = [];
+                    shared.setNodeSelected(nodeSelected.getRandomChild());
+                }
+            }
+            else {
+                shared.setNodeSelected(nodeSelected.getRandomChild());
+            }
         }
     };
     var callbackLeafClick = function () { 
@@ -328,8 +339,9 @@ window.justree = window.justree || {};
         }
     };
     var callbackZoomClick = function () {
-        if (shared.nodeSelected !== null) {
-            video.setZoomCell(shared.nodeSelected.cell);
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected !== null) {
+            video.setZoomCell(nodeSelected.cell);
             video.repaint();
         }
     };

@@ -65,6 +65,15 @@ window.justree = window.justree || {};
 		getChild: function(idx) {
 			return this.children[idx];
 		},
+		getRandomChild: function() {
+			var numChildren = this.getNumChildren();
+			if (numChildren > 0) {
+				return this.getChild(Math.floor(Math.random() * numChildren));
+			}
+			else {
+				return null;
+			}
+		},
 		setChild: function(idx, child) {
 			this.children[idx] = child;
 			child.parent = this;
