@@ -7,3 +7,6 @@ Subtree:
 	Set
 	Zoom
 	Parent
+
+Server:
+	/note on freqLo freqCutoff velocity atkMs relMs timeUntiloffMs (ms includes release)
