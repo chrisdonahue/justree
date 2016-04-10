@@ -107,9 +107,6 @@ window.justree = window.justree || {};
         shared.nodeSelected = null;
         shared.leafCellsSorted = [];
         shared.undoStack = [];
-        for (var i = 0; i < config.undoStackSize; ++i) {
-            shared.undoStack.push(null);
-        }
         shared.undoStackIdx = 0;
         shared.modalState = ModalEnum.EDIT;
     };
@@ -122,33 +119,57 @@ window.justree = window.justree || {};
     shared.peekNodeClipboard = function () {
         return shared.nodeClipboard;
     };
-    shared.undoBackup = function (node) {
-        // if we're full scoot everything back
-        if (shared.undoStackIdx >= config.undoStackSize) {
-            for (var i = 1; i < config.undoStackSize; ++i) {
-                shared.undoStack[i] = shared.undoStack[i - 1];
+    shared.undoDebugPrint = function () {
+        console.log('-------');
+        for (var i = 0; i < shared.undoStack.length; ++i) {
+            var str = String(i);
+            if (i === shared.undoStackIdx) {
+                str += '->';
             }
-            shared.undoStack[config.undoStackSize - 1] = node;
-        }
-        else {
-            // if we've branched clear out the garbage
-            if (shared.undoStack[shared.undoStackIdx] !== null) {
-                for (var i = shared.undoStackIdx; i < config.undoStackSize; ++i) {
-                    shared.undoStack[i] = null;
-                }
+            else {
+                str += '  ';
             }
-
-            // 
-            shared.undoStack[shared.undoStackIdx] = node;
-            shared.undoStackIdx += 1;
+            var node = shared.undoStack[i];
+            if (node === null) {
+                str += 'null';
+            }
+            else {
+                str += node.toString();
+            }
+            console.log(str);
         }
     };
-    shared.undoRetrieve = function () {
-        if (shared.undoStackIdx < 1) {
+    shared.undoStackPushChange = function (node) {
+        // if we've branched, delete everything 
+        while (shared.undoStackIdx < shared.undoStack.length) {
+            shared.undoStack.pop();
+        }
+        if (shared.undoStack.length < shared.undoStackIdx) {
+            shared.undoStack.push(node);
+        }
+        else {
+            shared.undoStack[shared.undoStackIdx] = node;
+        }
+        shared.undoStackIdx += 1;
+    };
+    shared.undoStackUndo = function (node) {
+        if (shared.undoStackIdx === 0) {
             return null;
+        }
+        if (shared.undoStackIdx === shared.undoStack.length) {
+            shared.undoStack.push(node);
         }
         var result = shared.undoStack[shared.undoStackIdx - 1];
         shared.undoStackIdx -= 1;
+        return result;
+    };
+    shared.undoStackRedo = function () {
+        if (shared.undoStackIdx + 1 < shared.undoStack.length) {
+            var result = shared.undoStack[shared.undoStackIdx + 1];
+            shared.undoStackIdx += 1;
+            return result;
+        }
+        return null;
     };
     shared.getNodeSelected = function () {
         return shared.nodeSelected;
@@ -387,15 +408,34 @@ window.justree = window.justree || {};
         }
     };
     var callbackUndoClick = function () {
+        var statePrev = shared.undoStackUndo(shared.getNodeRoot().getCopy());
+        if (statePrev !== null) {
+            shared.clearNodeSelected();
+            shared.setNodeRoot(statePrev);
+            shared.rescanNodeRootSubtree();
+            video.repaint();
+        }
+        //shared.undoDebugPrint();
     };
     var callbackRedoClick = function () {
+        var stateNext = shared.undoStackRedo();
+        if (stateNext !== null) {
+            shared.clearNodeSelected();
+            shared.setNodeRoot(stateNext);
+            shared.rescanNodeRootSubtree();
+            video.repaint();
+        }
+        //shared.undoDebugPrint();
     };
     var callbackEditSelectionDecorator = function (callback) {
         return function () {
             var nodeSelected = shared.getNodeSelected();
             if (nodeSelected !== null) {
+                var backup = shared.getNodeRoot().getCopy();
                 var subtreeModified = callback(nodeSelected);
                 if (subtreeModified !== null) {
+                    shared.undoStackPushChange(backup);
+                    //shared.undoDebugPrint();
                     if (subtreeModified.isRoot()) {
                         shared.setNodeRoot(subtreeModified);
                     }
