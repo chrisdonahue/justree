@@ -53,7 +53,13 @@
 		</div>
 		<div id="presets">
 			<p>Presets</p>
+			<div id="grid">
+			<p>Grid</p>
+			<p>X</p><input type="range" id="grid-x"></input>
+			<p>Y</p><input type="range" id="grid-y"></input>
+			</div>
 			<select id="tuning" disabled>
+				<option value="grid">Grid</option>
 				<option value="equal">Equal</option>
 				<option value="grid">Grid</option>
 				<option value="random">Random</option>
@@ -96,26 +102,17 @@
     	<p id="string"></p>
     </div>
 
-	<!--
-	<div id="debug">
-		<p id="msg"></p>
-	</div>
-	<div id="ui">
-
-	</div>
-
-	<div id="canvas">
-		<canvas id="justree-ui" width="512" height="512"></canvas>
-	</div>	-->
-
 	<script type="text/javascript" src="js/lib/underscore-1.8.3.js"></script>
 	<script type="text/javascript" src="js/lib/jquery-1.12.2.js"></script>
 
 	<script type="text/javascript" src="js/shim.js"></script>
-
-	<script type="text/javascript" src="js/tree.js"></script>
+	<script type="text/javascript" src="js/config.js"></script>
 	<script type="text/javascript" src="js/dsp.js"></script>
+	<script type="text/javascript" src="js/tree.js"></script>
 	<script type="text/javascript" src="js/saturate.js"></script>
+	<script type="text/javascript" src="js/shared.js"></script>
+	<script type="text/javascript" src="js/audio.js"></script>
+	<script type="text/javascript" src="js/video.js"></script>
 	<script type="text/javascript" src="js/justree.js"></script>
 </body>
 </html>
