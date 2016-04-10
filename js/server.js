@@ -66,7 +66,7 @@ window.justree = window.justree || {};
 		if (server.connected) {
 			server.socketOsc.send({
 				address: messageAddress,
-				args: ['TODOfingerprint'].concat(parameters)
+				args: [clientFingerprint].concat(parameters)
 			});
 		}
 		else {

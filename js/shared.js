@@ -11,7 +11,8 @@ window.justree = window.justree || {};
     var ModalEnum = shared.ModalEnum = {
         'HEAR': 0,
         'EDIT': 1,
-        'SHARE': 2
+        'SHARE': 2,
+        'SERVER': 3
     };
     shared.init = function () {
         shared.playheadState = PlayheadStateEnum.STOPPED;

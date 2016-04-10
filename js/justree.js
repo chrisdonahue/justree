@@ -386,8 +386,15 @@ window.justree = window.justree || {};
         shared.rescanNodeRootSubtree();
 
         // modal callbacks
+        $('button#server').on('click', function () {
+            shared.modalState = ModalEnum.SERVER;
+            $('div#server').show();
+            $('div#hear').hide();
+            $('div#edit').hide();
+        });
         $('button#hear').on('click', function () {
             shared.modalState = ModalEnum.HEAR;
+            $('div#server').hide();
             $('div#edit').hide();
             $('div#hear').show();
             shared.clearNodeSelected();
@@ -396,6 +403,7 @@ window.justree = window.justree || {};
         });
         $('button#edit').on('click', function () {
             shared.modalState = ModalEnum.EDIT;
+            $('div#server').hide();
             $('div#hear').hide();
             $('div#edit').show();
         });
@@ -415,6 +423,17 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
+
+        // server callbacks
+        $('button#connect').on('click', function () {
+            server.connect($('#server #ip').val(), $('#server #port').val());
+        });
+        $('button#disconnect').on('click', server.disconnect)
+        $('button#osc-send').on('click', function () {
+            var oscAddress = $('#server #osc-address').val();
+            var oscParameters = JSON.parse($('#server #osc-params').val());
+            server.sendOsc(oscAddress, oscParameters);
+        });
 
         // selection callbacks
         $('button#parent').on('click', callbackParentClick);
