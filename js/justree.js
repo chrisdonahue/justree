@@ -38,6 +38,7 @@ window.justree = window.justree || {};
     config.ratiosTime = []; // TODO
     config.ratiosFreq = [];
     config.ratiosLen = config.ratios.length;
+    config.undoStackSize = 8;
 
     // audio params
     config.blockSize = 1024;
@@ -105,6 +106,11 @@ window.justree = window.justree || {};
         shared.nodeRoot = null;
         shared.nodeSelected = null;
         shared.leafCellsSorted = [];
+        shared.undoStack = [];
+        for (var i = 0; i < config.undoStackSize; ++i) {
+            shared.undoStack.push(null);
+        }
+        shared.undoStackIdx = 0;
         shared.modalState = ModalEnum.EDIT;
     };
     shared.clearNodeClipboard = function () {
@@ -115,6 +121,34 @@ window.justree = window.justree || {};
     };
     shared.peekNodeClipboard = function () {
         return shared.nodeClipboard;
+    };
+    shared.undoBackup = function (node) {
+        // if we're full scoot everything back
+        if (shared.undoStackIdx >= config.undoStackSize) {
+            for (var i = 1; i < config.undoStackSize; ++i) {
+                shared.undoStack[i] = shared.undoStack[i - 1];
+            }
+            shared.undoStack[config.undoStackSize - 1] = node;
+        }
+        else {
+            // if we've branched clear out the garbage
+            if (shared.undoStack[shared.undoStackIdx] !== null) {
+                for (var i = shared.undoStackIdx; i < config.undoStackSize; ++i) {
+                    shared.undoStack[i] = null;
+                }
+            }
+
+            // 
+            shared.undoStack[shared.undoStackIdx] = node;
+            shared.undoStackIdx += 1;
+        }
+    };
+    shared.undoRetrieve = function () {
+        if (shared.undoStackIdx < 1) {
+            return null;
+        }
+        var result = shared.undoStack[shared.undoStackIdx - 1];
+        shared.undoStackIdx -= 1;
     };
     shared.getNodeSelected = function () {
         return shared.nodeSelected;
@@ -351,6 +385,10 @@ window.justree = window.justree || {};
             video.setZoomCell(nodeSelected.cell);
             video.repaint();
         }
+    };
+    var callbackUndoClick = function () {
+    };
+    var callbackRedoClick = function () {
     };
     var callbackEditSelectionDecorator = function (callback) {
         return function () {
@@ -948,6 +986,10 @@ window.justree = window.justree || {};
         $('button#root').on('click', callbackRootClick);
         $('button#leaf').on('click', callbackLeafClick);
         $('button#zoom').on('click', callbackZoomClick);
+
+        // undo callbacks
+        $('button#undo').on('click', callbackUndoClick);
+        $('button#redo').on('click', callbackRedoClick);
 
         // edit selection callbacks
         $('button#clear').on('click', callbackClearClick);
