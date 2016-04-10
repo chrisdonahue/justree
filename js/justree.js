@@ -12,6 +12,7 @@ window.justree = window.justree || {};
 	}
 
     /* imports */
+    var server = justree.server;
     var audio = justree.audio;
     var video = justree.video;
     var config = justree.config;
@@ -375,6 +376,7 @@ window.justree = window.justree || {};
 	var callbackDomReady = function () {
         // init
         shared.init();
+        server.init();
 		audio.init();
 		video.init('justree-ui');
 		
