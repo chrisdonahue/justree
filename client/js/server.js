@@ -32,6 +32,7 @@ window.justree = window.justree || {};
 		try {
 			server.connected = false;
 			var serverAddress = 'ws://' + ip + ':' + port;
+			console.log(serverAddress);
 			server.socketOsc = new osc.WebSocketPort({
 				url: serverAddress
 			});
@@ -48,6 +49,7 @@ window.justree = window.justree || {};
 		server.socketOsc.on('error', server.callbackError);
 
 		// open socket
+		console.log('connecting');
 		server.socketOsc.open();
 	};
 
