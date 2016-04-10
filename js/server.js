@@ -8,12 +8,11 @@ window.justree = window.justree || {};
 	var callbackOpen = function (event) {
 		console.log('socket open');
 		server.connected = true;
-		server.osc.send('/connect');
+		server.sendOsc('/connect');
 	};
 	var callbackClose = function (event) {
 		console.log('socket close');
 		server.connected = false;
-		alert('Connection lost. Please refresh this page');
 	};
 	var callbackMessage = function (event) {
 		console.log('socket message: ' + event.data);
@@ -29,28 +28,26 @@ window.justree = window.justree || {};
 	};
 
 	server.connect = function (ip, port) {
+		server.connected = false;
+		var serverAddress = 
+		server.socketOsc = new osc.WebSocketPort({
+			url: 'ws://' + ip + ':' + port
+		});
+
+		// register socket callbacks
+		server.socketOsc.on('open', callbackOpen);
+		server.socketOsc.on('close', callbackClose);
+		server.socketOsc.on('message', callbackMessage);
+		server.socketOsc.on('error', callbackError);
+
+		// open socket
 		try {
-			server.connected = false;
-			var serverAddress = 'ws://' + ip + ':' + port;
-			console.log(serverAddress);
-			server.socketOsc = new osc.WebSocketPort({
-				url: serverAddress
-			});
+			server.socketOsc.open();
 		}
 		catch (e) {
 			alert('Could not connect to server. Try refreshing.');
 			throw 'Could not connect to server';
 		}
-
-		// register socket callbacks
-		server.socketOsc.on('open', server.callbackOpen);
-		server.socketOsc.on('close', server.callbackClose);
-		server.socketOsc.on('message', server.callbackMessage);
-		server.socketOsc.on('error', server.callbackError);
-
-		// open socket
-		console.log('connecting');
-		server.socketOsc.open();
 	};
 
 	server.disconnect = function () {
@@ -63,16 +60,12 @@ window.justree = window.justree || {};
 
 	server.sendOsc = function (messageAddress, parameters) {
 		parameters = parameters || [];
+		console.log(parameters);
 		if (server.connected) {
 			server.socketOsc.send({
 				address: messageAddress,
 				args: [clientFingerprint].concat(parameters)
 			});
-		}
-		else {
-			console.log('not connected to server');
-			console.log(messageAddress);
-			console.log(parameters);
 		}
 	};
 
