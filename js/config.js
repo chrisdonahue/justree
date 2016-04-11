@@ -5,8 +5,8 @@ window.justree = window.justree || {};
 
     // tree params
     config.breadthMax = 3;
-    config.depthMin = 3;
-    config.depthMax = 4;
+    config.depthMin = 2;
+    config.depthMax = 3;
     config.nDims = 2;
     config.pTerm = 0.5;
     config.pOn = 0.0;

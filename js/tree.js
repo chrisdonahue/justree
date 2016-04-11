@@ -79,6 +79,7 @@ window.justree = window.justree || {};
 		},
 		insertChild: function (idx, child) {
 			this.children.splice(idx, 0, child)
+			child.parent = this;
 		},
 		addChild: function(child) {
 			this.children.push(child);
@@ -146,6 +147,13 @@ window.justree = window.justree || {};
         },
 		isLeaf: function () {
 			return this.getNumChildren() === 0;
+		},
+		getChildrenRatioSum: function () {
+			var ratioSum = 0;
+			for (var i = 0; i < this.getNumChildren(); ++i) {
+				ratioSum += this.getChild(i).getRatio();
+			}
+			return ratioSum;
 		},
 		forEachChild: function (fun) {
 			for (var i = 0; i < this.getNumChildren(); ++i) {

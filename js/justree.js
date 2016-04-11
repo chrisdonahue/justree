@@ -355,64 +355,66 @@ window.justree = window.justree || {};
     var callbackSplitTClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(0);
-            selected.addChild(new RatioNode(0, 1, false));
-            selected.addChild(new RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(1, 1, false));
             return selected;
         }
         else {
-            return null;
+            // add child
+            if (selected.getDim() === 0) {
+                selected.addChild(new RatioNode(1, selected.getChildrenRatioSum(), false));
+                return selected;
+            }
+            else {
+                // add parent
+                var newParent = new RatioNode(0, selected.getRatio(), false);
+                if (selected.isRoot()) {
+                    newParent.addChild(selected);
+                    newParent.addChild(new RatioNode(1, selected.getRatio(), false));
+                    return newParent;
+                }
+                else {
+                    var parent = selected.getParent();
+                    var newParentIdx = parent.getChildIdxForChild(selected);
+                    newParent.addChild(selected);
+                    newParent.addChild(new RatioNode(1, selected.getRatio(), false));
+                    parent.setChild(newParentIdx, newParent);
+                    return parent;
+                }
+            }
         }
     });
     var callbackSplitFClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(1);
-            selected.addChild(new RatioNode(1, 1, false));
-            selected.addChild(new RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(0, 1, false));
             return selected;
         }
         else {
-            return null;
+            // add child
+            if (selected.getDim() === 1) {
+                selected.addChild(new RatioNode(0, selected.getChildrenRatioSum(), false));
+                return selected;
+            }
+            else {
+                // add parent
+                var newParent = new RatioNode(1, selected.getRatio(), false);
+                if (selected.isRoot()) {
+                    newParent.addChild(selected);
+                    newParent.addChild(new RatioNode(0, selected.getRatio(), false));
+                    return newParent;
+                }
+                else {
+                    var parent = selected.getParent();
+                    var newParentIdx = parent.getChildIdxForChild(selected);
+                    newParent.addChild(selected);
+                    newParent.addChild(new RatioNode(0, selected.getRatio(), false));
+                    parent.setChild(newParentIdx, newParent);
+                    return parent;
+                }
+            }
         }
-    });
-    var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
-        if (selected.isRoot()) {
-            var rootNew = new RatioNode((selected.getDim() + 1) % 2, 1, false);
-            rootNew.addChild(selected);
-            rootNew.addChild(new RatioNode(0, selected.getRatio(), false))
-            return rootNew;
-        }
-        else {
-            var parent = selected.getParent();
-            parent.addChild(new RatioNode(0, selected.getRatio(), false));
-            return parent;
-        }
-    });
-    var callbackAddFSiblingClick = callbackEditSelectionDecorator(function (selected) {
-        if (selected.isRoot()) {
-            var rootNew = new RatioNode((selected.getDim() + 1) % 2, 1, false);
-            rootNew.addChild(selected);
-            rootNew.addChild(new RatioNode(1, selected.getRatio(), false))
-            return rootNew;
-        }
-        else {
-            var parent = selected.getParent();
-            parent.addChild(new RatioNode(1, selected.getRatio(), false));
-            return parent;
-        }
-    });
-    var callbackAddTChildClick = callbackEditSelectionDecorator(function (selected) {
-        selected.addChild(new RatioNode(0, 1, false));
-        if (selected.getNumChildren() === 1) {
-            selected.addChild(new RatioNode(0, 1, false));
-        }
-        return selected;
-    });
-    var callbackAddFChildClick = callbackEditSelectionDecorator(function (selected) {
-        selected.addChild(new RatioNode(1, 1, false));
-        if (selected.getNumChildren() === 1) {
-            selected.addChild(new RatioNode(1, 1, false));
-        }
-        return selected;
     });
 
 	/* init */
@@ -510,10 +512,6 @@ window.justree = window.justree || {};
         $('button#flip').on('click', callbackFlipClick);
         $('button#split-t').on('click', callbackSplitTClick);
         $('button#split-f').on('click', callbackSplitFClick);
-        $('button#add-t-sibling').on('click', callbackAddTSiblingClick);
-        $('button#add-f-sibling').on('click', callbackAddFSiblingClick);
-        $('button#add-t-child').on('click', callbackAddTChildClick);
-        $('button#add-f-child').on('click', callbackAddFChildClick);
 
         // clipboard callbacks
         $('button#cut').on('click', callbackCutClick);
