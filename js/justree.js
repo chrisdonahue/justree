@@ -23,6 +23,10 @@ window.justree = window.justree || {};
 
     var debugAssert = config.debugAssert;
     var ModalEnum = shared.ModalEnum;
+    var PlayheadStateEnum = shared.PlayheadStateEnum;
+    var RatioNode = tree.RatioNode;
+
+    var ui = {};
 
     /* callbacks */
 	var callbackPlayClick = function () {
@@ -203,6 +207,45 @@ window.justree = window.justree || {};
             }
         }
     };
+    var refreshGridDisplay = function () {
+        $('#x-disp').html(ui.gridX);
+        $('#y-disp').html(ui.gridY);
+    };
+    var callbackGridXIncrement = function () {
+        ui.gridX += 1;
+        refreshGridDisplay();
+    };
+    var callbackGridXDecrement = function () {
+        if (ui.gridX >= 2) {
+            ui.gridX -= 1;
+        }
+        refreshGridDisplay();
+    };
+    var callbackGridYIncrement = function () {
+        ui.gridY += 1;
+        refreshGridDisplay();
+    };
+    var callbackGridYDecrement = function () {
+        if (ui.gridY >= 2) {
+            ui.gridY -= 1;
+        }
+        refreshGridDisplay();
+    };
+    var callbackGridGenerate = callbackEditSelectionDecorator(function (selected) {
+        var gridNodeRoot = new RatioNode(1, selected.getRatio(), false);
+        for (var y = 0; y < ui.gridY; ++y) {
+            var gridNodeY = new RatioNode(0, 1, false);
+            gridNodeRoot.addChild(gridNodeY);
+            for (var x = 0; x < ui.gridX; ++x) {
+                var gridNodeX = new RatioNode(1, 1, false);
+                gridNodeY.addChild(gridNodeX);
+            }
+        }
+        tree.replaceSubtree(selected, gridNodeRoot);
+        shared.setNodeSelected(gridNodeRoot);
+        return gridNodeRoot;
+    });
+
     var callbackCutClick = callbackEditSelectionDecorator(function (selected) {
         shared.pushNodeClipboard(selected.getCopy());
         selected.deleteChildren();
@@ -312,8 +355,8 @@ window.justree = window.justree || {};
     var callbackSplitTClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(0);
-            selected.addChild(new tree.RatioNode(0, 1, false));
-            selected.addChild(new tree.RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(0, 1, false));
             return selected;
         }
         else {
@@ -323,8 +366,8 @@ window.justree = window.justree || {};
     var callbackSplitFClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(1);
-            selected.addChild(new tree.RatioNode(1, 1, false));
-            selected.addChild(new tree.RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(1, 1, false));
             return selected;
         }
         else {
@@ -333,41 +376,41 @@ window.justree = window.justree || {};
     });
     var callbackAddTSiblingClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isRoot()) {
-            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            var rootNew = new RatioNode((selected.getDim() + 1) % 2, 1, false);
             rootNew.addChild(selected);
-            rootNew.addChild(new tree.RatioNode(0, selected.getRatio(), false))
+            rootNew.addChild(new RatioNode(0, selected.getRatio(), false))
             return rootNew;
         }
         else {
             var parent = selected.getParent();
-            parent.addChild(new tree.RatioNode(0, selected.getRatio(), false));
+            parent.addChild(new RatioNode(0, selected.getRatio(), false));
             return parent;
         }
     });
     var callbackAddFSiblingClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isRoot()) {
-            var rootNew = new tree.RatioNode((selected.getDim() + 1) % 2, 1, false);
+            var rootNew = new RatioNode((selected.getDim() + 1) % 2, 1, false);
             rootNew.addChild(selected);
-            rootNew.addChild(new tree.RatioNode(1, selected.getRatio(), false))
+            rootNew.addChild(new RatioNode(1, selected.getRatio(), false))
             return rootNew;
         }
         else {
             var parent = selected.getParent();
-            parent.addChild(new tree.RatioNode(1, selected.getRatio(), false));
+            parent.addChild(new RatioNode(1, selected.getRatio(), false));
             return parent;
         }
     });
     var callbackAddTChildClick = callbackEditSelectionDecorator(function (selected) {
-        selected.addChild(new tree.RatioNode(0, 1, false));
+        selected.addChild(new RatioNode(0, 1, false));
         if (selected.getNumChildren() === 1) {
-            selected.addChild(new tree.RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(0, 1, false));
         }
         return selected;
     });
     var callbackAddFChildClick = callbackEditSelectionDecorator(function (selected) {
-        selected.addChild(new tree.RatioNode(1, 1, false));
+        selected.addChild(new RatioNode(1, 1, false));
         if (selected.getNumChildren() === 1) {
-            selected.addChild(new tree.RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(1, 1, false));
         }
         return selected;
     });
@@ -446,6 +489,16 @@ window.justree = window.justree || {};
         // undo callbacks
         $('button#undo').on('click', callbackUndoClick);
         $('button#redo').on('click', callbackRedoClick);
+
+        // generator callbacks
+        ui.gridX = 2;
+        ui.gridY = 2;
+        refreshGridDisplay();
+        $('button#x-inc').on('click', callbackGridXIncrement);
+        $('button#x-dec').on('click', callbackGridXDecrement);
+        $('button#y-inc').on('click', callbackGridYIncrement);
+        $('button#y-dec').on('click', callbackGridYDecrement);
+        $('button#generate').on('click', callbackGridGenerate);
 
         // edit selection callbacks
         $('button#clear').on('click', callbackClearClick);

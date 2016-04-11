@@ -40,7 +40,6 @@ window.justree = window.justree || {};
 			for (var i = 0; i < this.getNumChildren(); ++i) {
 				thisCopy.addChild(this.getChild(i).getCopy(thisCopy));
 			}
-			thisCopy.setParent(parent);
 			return thisCopy;
 		},
 		isSane: function (parent) {
@@ -133,8 +132,8 @@ window.justree = window.justree || {};
 		getParent: function () {
 			return this.parent;
 		},
-		setParent: function (parent) {
-			this.parent = parent;
+		emancipate: function () {
+			this.parent = null;
 		},
 		getChildren: function () {
 			return this.children;
@@ -163,7 +162,21 @@ window.justree = window.justree || {};
 		}
 	});
 
-    var swapSubTrees = function (subtree0, subtree1) {
+	var replaceSubtree = tree.replaceSubtree = function (subtreeOld, subtreeNew) {
+		if (subtreeOld.isRoot()) {
+			subtreeNew.emancipate();
+		}
+		else {
+			var subtreeOldParent = subtreeOld.getParent();
+			var childIdx = subtreeOldParent.getChildIdxForChild(subtreeOld);
+			console.log(childIdx);
+			subtreeOldParent.setChild(childIdx, subtreeNew);
+		}
+	};
+
+	/*
+    var swapSubTrees = tree.swapSubTrees = function (subtree0, subtree1) {
+    	if (subtree0 )
         subtree0Parent = subtree0.parent;
         subtree1Parent = subtree1.parent;
 
@@ -182,6 +195,7 @@ window.justree = window.justree || {};
             subtree1.parent = null;
         }
     };
+    */
 
 	var treeGrow = tree.treeGrow = function (depthCurr, depthMin, depthMax, breadthMax, pLeaf, nDims, ratios, pOn) {
 		//var dim = Math.floor(Math.random() * nDims);
