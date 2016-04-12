@@ -18,7 +18,6 @@ window.justree = window.justree || {};
         audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam];
         for (var i = 0; i < audio.params.length; ++i) {
             var param = audio.params[i];
-            param.val = param.valInit;
             param.valLast = param.val;
         }
 

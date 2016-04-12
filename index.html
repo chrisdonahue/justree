@@ -63,10 +63,17 @@
 		</div>
 		<div id="presets">
 			<p>Presets</p>
-			<div id="grid">
-			<p>Grid</p>
-			<p>X:</p><p id="x-disp"></p><button id="x-dec">-</button><button id="x-inc">+</button>
-			<p>Y:</p><p id="y-disp"></p><button id="y-dec">-</button><button id="y-inc">+</button>
+			<button id="grid">Grid</button>
+			<button id="grow">Mutate</button>
+			<div id="grid" hidden>
+				<p>Grid</p>
+				<p>X:</p><p id="x-disp"></p><button id="x-dec">-</button><button id="x-inc">+</button>
+				<p>Y:</p><p id="y-disp"></p><button id="y-dec">-</button><button id="y-inc">+</button>
+			</div>
+			<div id="mutate">
+				<p>Mutate</p>
+				<p>Max depth:</p><input type="range" id="depth-max"></input>
+				<p>Max breadth:</p><input type="range" id="breadth-max"></input>
 			</div>
 			<button id="generate">Generate</button>
 			<!--

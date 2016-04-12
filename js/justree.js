@@ -25,8 +25,16 @@ window.justree = window.justree || {};
     var ModalEnum = shared.ModalEnum;
     var PlayheadStateEnum = shared.PlayheadStateEnum;
     var RatioNode = tree.RatioNode;
+    var growDepthMaxParam = config.growDepthMaxParam;
+    var growBreadthMaxParam = config.growBreadthMaxParam;
 
     var ui = {};
+
+    var GenerateEnum = {
+        'GRID': 0,
+        'GROW': 1
+    };
+    var generateState = GenerateEnum.GROW;
 
     /* callbacks */
 	var callbackPlayClick = function () {
@@ -51,14 +59,15 @@ window.justree = window.justree || {};
             audio.scriptNode.connect(audio.audioCtx.destination);
         }
     };
-    var hookAudioParamToSlider = function (param, sliderSelector) {
+    var hookParamToSlider = function (param, sliderSelector) {
         var $slider = $(sliderSelector);
-        $slider.attr('min', param['min']);
-        $slider.attr('max', param['max']);
-        $slider.attr('step', param['step']);
-        $slider.attr('value', param['val']);
+        param.val = param.valInit;
+        $slider.attr('min', param.min);
+        $slider.attr('max', param.max);
+        $slider.attr('step', param.step);
+        $slider.attr('value', param.val);
         $slider.on('input', function (event) {
-            param['val'] = event.target.value;
+            param.val = event.target.value;
         });
     };
 
@@ -231,19 +240,33 @@ window.justree = window.justree || {};
         }
         refreshGridDisplay();
     };
-    var callbackGridGenerate = callbackEditSelectionDecorator(function (selected) {
-        var gridNodeRoot = new RatioNode(1, selected.getRatio(), false);
-        for (var y = 0; y < ui.gridY; ++y) {
-            var gridNodeY = new RatioNode(0, 1, false);
-            gridNodeRoot.addChild(gridNodeY);
-            for (var x = 0; x < ui.gridX; ++x) {
-                var gridNodeX = new RatioNode(1, 1, false);
-                gridNodeY.addChild(gridNodeX);
-            }
+    var callbackGenerate = callbackEditSelectionDecorator(function (selected) {
+        var replacement = null;
+        switch (generateState) {
+            case GenerateEnum.GRID:
+                replacement = new RatioNode(1, selected.getRatio(), false);
+                for (var y = 0; y < ui.gridY; ++y) {
+                    var gridNodeY = new RatioNode(0, 1, false);
+                    replacement.addChild(gridNodeY);
+                        for (var x = 0; x < ui.gridX; ++x) {
+                        var gridNodeX = new RatioNode(1, 1, false);
+                        gridNodeY.addChild(gridNodeX);
+                    }
+                }
+                break;
+            case GenerateEnum.GROW:
+                replacement = tree.treeGrow(0, 1, growDepthMaxParam.val, growBreadthMaxParam.val, config.pTerm, config.nDims, config.ratios, config.pOn);
+                replacement.setRatio(selected.getRatio());
+                break;
+            default:
+                break;
         }
-        tree.replaceSubtree(selected, gridNodeRoot);
-        shared.setNodeSelected(gridNodeRoot);
-        return gridNodeRoot;
+
+        if (replacement !== null) {
+            tree.replaceSubtree(selected, replacement);
+            shared.setNodeSelected(replacement);
+        }
+        return replacement;
     });
 
     var callbackCutClick = callbackEditSelectionDecorator(function (selected) {
@@ -452,6 +475,16 @@ window.justree = window.justree || {};
             $('div#hear').hide();
             $('div#edit').show();
         });
+        $('button#grid').on('click', function () {
+            generateState = GenerateEnum.GRID;
+            $('div#grid').show();
+            $('div#mutate').hide();
+        });
+        $('button#grow').on('click', function () {
+            generateState = GenerateEnum.GROW;
+            $('div#mutate').show();
+            $('div#grid').hide();
+        });
 
         // canvas mouse/touch events
         if (window.supportsTouchEvents) {
@@ -500,7 +533,9 @@ window.justree = window.justree || {};
         $('button#x-dec').on('click', callbackGridXDecrement);
         $('button#y-inc').on('click', callbackGridYIncrement);
         $('button#y-dec').on('click', callbackGridYDecrement);
-        $('button#generate').on('click', callbackGridGenerate);
+        hookParamToSlider(growDepthMaxParam, '#depth-max');
+        hookParamToSlider(growBreadthMaxParam, '#breadth-max');
+        $('button#generate').on('click', callbackGenerate);
 
         // edit selection callbacks
         $('button#clear').on('click', callbackClearClick);
@@ -527,10 +562,10 @@ window.justree = window.justree || {};
         $('#playback #play').on('click', callbackPlayClick);
         $('#playback #loop').on('click', callbackLoopClick);
         $('#playback #stop').on('click', callbackStopClick);
-        hookAudioParamToSlider(audio.gainParam, '#playback #gain');
-        hookAudioParamToSlider(audio.timeLenParam, '#synthesis #time-len');
-        hookAudioParamToSlider(audio.freqMinParam, '#synthesis #freq-min');
-        hookAudioParamToSlider(audio.freqMaxRatParam, '#synthesis #freq-max-rat');
+        hookParamToSlider(audio.gainParam, '#playback #gain');
+        hookParamToSlider(audio.timeLenParam, '#synthesis #time-len');
+        hookParamToSlider(audio.freqMinParam, '#synthesis #freq-min');
+        hookParamToSlider(audio.freqMaxRatParam, '#synthesis #freq-max-rat');
         $('#effects input[name=reverb]').on('change', callbackReverbToggle);
         callbackReverbToggle();
 

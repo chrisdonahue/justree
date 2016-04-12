@@ -177,7 +177,6 @@ window.justree = window.justree || {};
 		else {
 			var subtreeOldParent = subtreeOld.getParent();
 			var childIdx = subtreeOldParent.getChildIdxForChild(subtreeOld);
-			console.log(childIdx);
 			subtreeOldParent.setChild(childIdx, subtreeNew);
 		}
 	};

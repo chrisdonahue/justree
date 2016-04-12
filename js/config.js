@@ -15,6 +15,20 @@ window.justree = window.justree || {};
     config.ratiosFreq = [];
     config.ratiosLen = config.ratios.length;
     config.undoStackSize = 8;
+    config.growDepthMaxParam = {
+        'min': 1,
+        'max': 6,
+        'step': 1,
+        'valInit': 4
+    };
+    config.growBreadthMaxParam = {
+        'min': 2,
+        'max': 6,
+        'step': 1,
+        'valInit': 2
+    };
+    config.growDepthMin = 1;
+    config.growDepthMax = 
 
     // audio params
     config.blockSize = 1024;
