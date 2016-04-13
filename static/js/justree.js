@@ -456,14 +456,16 @@ window.justree = window.justree || {};
         // modal callbacks
         $('button#server').on('click', function () {
             shared.modalState = ModalEnum.SERVER;
-            $('div#server').show();
             $('div#hear').hide();
             $('div#edit').hide();
+            $('div#share').hide();
+            $('div#server').show();
         });
         $('button#hear').on('click', function () {
             shared.modalState = ModalEnum.HEAR;
             $('div#server').hide();
             $('div#edit').hide();
+            $('div#share').hide();
             $('div#hear').show();
             shared.clearNodeSelected();
             navChildStack = [];
@@ -473,7 +475,18 @@ window.justree = window.justree || {};
             shared.modalState = ModalEnum.EDIT;
             $('div#server').hide();
             $('div#hear').hide();
+            $('div#share').hide();
             $('div#edit').show();
+        });
+        $('button#share').on('click', function () {
+            shared.modalState = ModalEnum.SHARE;
+            $('div#server').hide();
+            $('div#hear').hide();
+            $('div#edit').hide();
+            $('div#share').show();
+            shared.clearNodeSelected();
+            navChildStack = [];
+            video.repaint();
         });
         $('button#grid').on('click', function () {
             generateState = GenerateEnum.GRID;
@@ -568,6 +581,23 @@ window.justree = window.justree || {};
         hookParamToSlider(audio.freqMaxRatParam, '#synthesis #freq-max-rat');
         $('#effects input[name=reverb]').on('change', callbackReverbToggle);
         callbackReverbToggle();
+
+        // share load
+        $.ajax({
+            type: 'GET',
+            url: config.shareRoute,
+            xhrFields: {
+                withCredentials: false
+            },
+            headers: {
+            },
+            success: function () {
+                console.log('success');
+            },
+            error: function () {
+                console.log('error');
+            }
+        });
 
         // viewport resize callback
 		$(window).resize(video.callbackWindowResize);

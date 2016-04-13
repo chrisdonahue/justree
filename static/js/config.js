@@ -67,6 +67,9 @@ window.justree = window.justree || {};
     // fx params
     config.reverbLen = 1.5;
     config.reverbDcy = 10.0;
+
+    // share params
+    config.shareRoute = 'http://localhost:3000/justrees'
     
     // debug
     config.debug = true;

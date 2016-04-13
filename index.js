@@ -3,6 +3,7 @@
 
 // imports
 var express = require('express');
+var expressValidator = require('express-validator');
 var bodyParser = require('body-parser');
 var fs = require('fs');
 
@@ -46,6 +47,7 @@ justrees.sort(function (a, b) {
 
 // app settings
 var app = express();
+app.use('/static', express.static('static'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -54,7 +56,7 @@ app.get('/justrees', function (req, res) {
 	return res.json(justrees);
 });
 app.post('/justrees', function (req, res) {
-	
+	console.log(req);
 });
 
 // start server
