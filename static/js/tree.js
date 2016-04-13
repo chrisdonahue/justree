@@ -4,12 +4,12 @@ window.justree = window.justree || {};
 	var tree = justree.tree = {};
 
 	var RatioNode = tree.RatioNode = ObjectBase.extend({
-		constructor: function (dim, ratio, on) {
+		constructor: function (dim, ratio, velocity) {
             this.parent = null;
             this.children = [];
 			this.dim = dim;
 			this.ratio = ratio;
-			this.on = on;
+			this.velocity = velocity;
 		},
 		getDim: function () {
 			return this.dim;
@@ -22,6 +22,12 @@ window.justree = window.justree || {};
 		},
 		setRatio: function (ratio) {
 			this.ratio = ratio;
+		},
+		getVelocity: function () {
+			return this.velocity;
+		},
+		setVelocity: function (velocity) {
+			this.velocity = velocity;
 		},
 		getDepth: function () {
 			depth = 0;
@@ -161,9 +167,10 @@ window.justree = window.justree || {};
 			}
 		},
 		toString: function () {
-			var string = '(' + String(this.ratio);
-			for (var i = 0; i < this.children.length; ++i) {
-				string += ' ' + this.children[i].toString();
+			var velocity = this.on ? 1.0 : 0.0;
+			var string = '(' + String(this.getDim()) + ' ' + String(this.getRatio()) + ' ' + String(this.getVelocity());
+			for (var i = 0; i < this.getNumChildren(); ++i) {
+				string += ' ' + this.getChild(i).toString();
 			}
 			string += ')';
 			return string;
@@ -208,8 +215,8 @@ window.justree = window.justree || {};
 		//var dim = Math.floor(Math.random() * nDims);
 		var dim = depthCurr % 2;
 		var ratio = ratios[Math.floor(Math.random() * ratios.length)];
-		var on = Math.random() < pOn;
-		var node = new RatioNode(dim, ratio, on);
+		var velocity = Math.random() < pOn ? 1.0 : 0.0;
+		var node = new RatioNode(dim, ratio, velocity);
 
 		var p = pLeaf;
 		if (depthCurr < depthMin) {
@@ -231,75 +238,67 @@ window.justree = window.justree || {};
 		return node;
 	};
 
-	var consumeWhiteSpace = function(treeStr) {
-		while (treeStr.length > 0) {
-			var char = treeStr[0];
-			if (!(char === ' ' || char === '\t' || char === '\n')) {
-				break;
-			}
-			treeStr = treeStr.slice(1);
-		}
-		return treeStr;
-	};
-
-	var tokenize = function () {
-
-	};
-
-	var consumeToken = function(treeStr, token) {
-		if (treeStr.length === 0) {
+	var consumeToken = function(tokens, expectedToken) {
+		if (tokens.length === 0) {
 			throw 'consumeToken: Unexpected end of string.'
 		}
 
-		if (treeStr[0] === token) {
-			return treeStr.slice(1);
+		if (tokens[0] === expectedToken) {
+			tokens.splice(0, 1);
 		}
 		else {
 			throw 'consumeToken: Unexpected token.';
 		}
 	};
 
-	var nodeParse = tree.nodeParse = function (nodeStr) {
-		nodeStr = consumeWhiteSpace(nodeStr);
+	var parseNumber = function(tokens) {
+		if (tokens.length === 0) {
+			throw 'consumeToken: Unexpected end of string.'
+		}
 
+		var float = parseFloat(tokens[0]);
+		tokens.splice(0, 1);
+		if (isNaN(float)) {
+			throw 'consumeNumber: Invalid number.'
+		}
+		return float;
+	};
+
+	var nodeParse = tree.nodeParse = function (tokens) {
 		// parse open paren
-		nodeStr = consumeToken(nodeStr, '(');
-		nodeStr = consumeWhiteSpace(nodeStr);
+		consumeToken(tokens, '(');
 
 		// parse attrs
+		var nodeNew = new RatioNode(parseNumber(tokens), parseNumber(tokens), parseNumber(tokens));
 
 		// parse children
-		var children = []
-		while (nodeStr[0] === '(') {
-			var child = treeParse(nodeStr);
-			children.append(child.node);
-			nodeStr = child.remaining;
-			nodeStr = consumeWhiteSpace(nodeStr);
+		while (tokens.length > 0 && tokens[0] === '(') {
+			nodeNew.addChild(nodeParse(tokens));
 		}
 
 		// parse close paren
-		nodeStr = consumeToken(nodeStr, ')');
+		consumeToken(tokens, ')');
 
-		return {
-			'node': node,
-			'remaining': nodeStr
-		};
+		return nodeNew;
+	};
+
+	var tokenize = function(input) {
+		return input.replace(/\(/g, ' ( ')
+			.replace(/\)/g, ' ) ')
+			.trim()
+			.split(/\s+/);
 	};
 
 	var treeParse = tree.treeParse = function (treeStr) {
-		var tokens = treeStr.split(/[\s,]+/);
+		var tokens = tokenize(treeStr);
 
-		var root = nodeParse(treeStr);
-		treeStr = root.remaining;
-		root = root.node;
+		var nodeRoot = nodeParse(tokens);
 
-		treeStr = consumeWhiteSpace(treeStr);
-
-		if (treeStr.length > 0) {
+		if (tokens.length > 0) {
 			throw 'treeParse: Unexpected token.';
 		}
 
-		return root;
+		return nodeRoot;
 	};
 
 })(window.ObjectBase, window.justree);

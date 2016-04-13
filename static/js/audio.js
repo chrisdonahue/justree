@@ -117,10 +117,10 @@ window.justree = window.justree || {};
                 var cellCurr = cells[cellCurrIdx];
                 var cellCurrStart = cellCurr.x;
                 var cellCurrEnd = cellCurr.x + cellCurr.width;
-                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd && cellCurr.node.on) {
+                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd && cellCurr.node.getVelocity() > 0.0) {
                     cellsIdxStarting.push(cellCurrIdx);
                 }
-                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd && cellCurr.node.on) {
+                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd && cellCurr.node.getVelocity() > 0.0) {
                     cellsIdxEnding.push(cellCurrIdx);
                 }
                 ++cellCurrIdx;

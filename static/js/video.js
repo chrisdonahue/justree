@@ -123,7 +123,7 @@ window.justree = window.justree || {};
 		for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
 			var cell = shared.leafCellsSorted[i];
             var absBb = relBbToAbsBb(cell);
-            if (cell.node.on) {
+            if (cell.node.getVelocity() > 0.0) {
                 ctx.fillStyle = 'rgb(200, 200, 200)';
             }
             else {

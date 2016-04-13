@@ -85,7 +85,7 @@ window.justree = window.justree || {};
 
             switch (shared.modalState) {
                 case ModalEnum.HEAR:
-                    nodeSelected.on = !nodeSelected.on;
+                    nodeSelected.setVelocity(nodeSelected.getVelocity() > 0.0 ? 0.0 : 1.0);
                     video.repaint();
                     break;
                 case ModalEnum.EDIT:
@@ -244,12 +244,12 @@ window.justree = window.justree || {};
         var replacement = null;
         switch (generateState) {
             case GenerateEnum.GRID:
-                replacement = new RatioNode(1, selected.getRatio(), false);
+                replacement = new RatioNode(1, selected.getRatio(), 0.0);
                 for (var y = 0; y < ui.gridY; ++y) {
-                    var gridNodeY = new RatioNode(0, 1, false);
+                    var gridNodeY = new RatioNode(0, 1, 0.0);
                     replacement.addChild(gridNodeY);
                         for (var x = 0; x < ui.gridX; ++x) {
-                        var gridNodeX = new RatioNode(1, 1, false);
+                        var gridNodeX = new RatioNode(1, 1, 0.0);
                         gridNodeY.addChild(gridNodeX);
                     }
                 }
@@ -378,29 +378,29 @@ window.justree = window.justree || {};
     var callbackSplitTClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(0);
-            selected.addChild(new RatioNode(1, 1, false));
-            selected.addChild(new RatioNode(1, 1, false));
+            selected.addChild(new RatioNode(1, 1, 0.0));
+            selected.addChild(new RatioNode(1, 1, 0.0));
             return selected;
         }
         else {
             // add child
             if (selected.getDim() === 0) {
-                selected.addChild(new RatioNode(1, selected.getChildrenRatioSum(), false));
+                selected.addChild(new RatioNode(1, selected.getChildrenRatioSum(), 0.0));
                 return selected;
             }
             else {
                 // add parent
-                var newParent = new RatioNode(0, selected.getRatio(), false);
+                var newParent = new RatioNode(0, selected.getRatio(), 0.0);
                 if (selected.isRoot()) {
                     newParent.addChild(selected);
-                    newParent.addChild(new RatioNode(1, selected.getRatio(), false));
+                    newParent.addChild(new RatioNode(1, selected.getRatio(), 0.0));
                     return newParent;
                 }
                 else {
                     var parent = selected.getParent();
                     var newParentIdx = parent.getChildIdxForChild(selected);
                     newParent.addChild(selected);
-                    newParent.addChild(new RatioNode(1, selected.getRatio(), false));
+                    newParent.addChild(new RatioNode(1, selected.getRatio(), 0.0));
                     parent.setChild(newParentIdx, newParent);
                     return parent;
                 }
@@ -410,29 +410,29 @@ window.justree = window.justree || {};
     var callbackSplitFClick = callbackEditSelectionDecorator(function (selected) {
         if (selected.isLeaf()) {
             selected.setDim(1);
-            selected.addChild(new RatioNode(0, 1, false));
-            selected.addChild(new RatioNode(0, 1, false));
+            selected.addChild(new RatioNode(0, 1, 0.0));
+            selected.addChild(new RatioNode(0, 1, 0.0));
             return selected;
         }
         else {
             // add child
             if (selected.getDim() === 1) {
-                selected.addChild(new RatioNode(0, selected.getChildrenRatioSum(), false));
+                selected.addChild(new RatioNode(0, selected.getChildrenRatioSum(), 0.0));
                 return selected;
             }
             else {
                 // add parent
-                var newParent = new RatioNode(1, selected.getRatio(), false);
+                var newParent = new RatioNode(1, selected.getRatio(), 0.0);
                 if (selected.isRoot()) {
                     newParent.addChild(selected);
-                    newParent.addChild(new RatioNode(0, selected.getRatio(), false));
+                    newParent.addChild(new RatioNode(0, selected.getRatio(), 0.0));
                     return newParent;
                 }
                 else {
                     var parent = selected.getParent();
                     var newParentIdx = parent.getChildIdxForChild(selected);
                     newParent.addChild(selected);
-                    newParent.addChild(new RatioNode(0, selected.getRatio(), false));
+                    newParent.addChild(new RatioNode(0, selected.getRatio(), 0.0));
                     parent.setChild(newParentIdx, newParent);
                     return parent;
                 }
