@@ -69,6 +69,8 @@ window.justree = window.justree || {};
     config.reverbDcy = 10.0;
 
     // share params
+    config.synthIp = 'localhost';
+    config.synthPort = 1234;
     config.shareRoute = '/justrees'
     
     // debug
