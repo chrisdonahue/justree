@@ -3,7 +3,8 @@ window.justree = window.justree || {};
 (function (justree, osc, fingerprint) {
 	var server = justree.server = {};
 	
-	var clientFingerprint = ((new Date()).getTime()) % (new fingerprint().get());
+	//var clientFingerprint = ((new Date()).getTime()) % (new fingerprint().get());
+	var clientFingerprint = new fingerprint().get();
 
 	var callbackOpen = function (event) {
 		console.log('socket open');
@@ -60,7 +61,6 @@ window.justree = window.justree || {};
 
 	server.sendOsc = function (messageAddress, parameters) {
 		parameters = parameters || [];
-		console.log(parameters);
 		if (server.connected) {
 			server.socketOsc.send({
 				address: messageAddress,

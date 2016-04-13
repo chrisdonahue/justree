@@ -27,8 +27,8 @@ window.justree = window.justree || {};
         'step': 1,
         'valInit': 2
     };
-    config.growDepthMin = 1;
-    config.growDepthMax = 
+    config.growDepthMin = 2;
+    config.growDepthMax = 5;
 
     // audio params
     config.blockSize = 1024;
@@ -56,6 +56,18 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
+    config.envAtkParam = {
+        'min': 0.0,
+        'max': 100.0,
+        'step': 10.0,
+        'valInit': 5.0,
+    };
+    config.envDcyParam = {
+        'min': 0.0,
+        'max': 1000.0,
+        'step': 100.0,
+        'valInit': 50.0
+    };
     config.reverbOn = false;
 
     // synth params
@@ -69,8 +81,8 @@ window.justree = window.justree || {};
     config.reverbDcy = 10.0;
 
     // share params
-    config.synthIp = 'localhost';
-    config.synthPort = 1234;
+    config.synthIp = '192.168.1.101';
+    config.synthPort = 1235;
     config.shareRoute = '/justrees'
     
     // debug

@@ -16,35 +16,23 @@
 
 <body>
 	<div id="mode">
-		<button id="server">Server</button>
-		<button id="hear">Hear</button>
+		<button id="hear">Play</button>
 		<button id="edit">Edit</button>
 		<button id="share">Share</button>
-	</div>
-	<div id="server" hidden>
-		<p>Server IP</p><input type="text" id="ip" value="localhost">
-		<p>Server Port</p><input type="text" id="port" value="1235"><br>
-		<button id="connect">Connect</button>
-		<button id="disconnect">Disconnect</button>
-		<p>OSC Address</p><input type="text" id="osc-address" value="/test">
-		<p>OSC Parameters</p><input type="text" id="osc-params" value="[]"><br>
-		<button id="osc-send">OSC Send</button>
 	</div>
     <div id="hear" hidden>
 		<div id="playback">
 			<button id="play">Play</button>
 			<button id="loop">Loop</button>
 			<button id="stop">Stop</button>
-			<p>Volume</p>
-			<input type="range" id="gain"></input>
 		</div>
 		<div id="synthesis">
+			<p>Volume</p><input type="range" id="gain"></input>
 			<p>Length</p><input type="range" id="time-len"></input>
 			<p>Freq min</p><input type="range" id="freq-min"></input>
 			<p>Freq multiplier</p><input type="range" id="freq-max-rat"></input>
-		</div>
-		<div id="effects">
-			<p>Reverb</p><input type="radio" id="reverb-on" name="reverb" value="on"><label for="reverb-on">On</label><input type="radio" id="reverb-off" name="reverb" value="off" checked><label for="reverb-off">Off</label>
+			<p>Attack</p><input type="range" id="env-atk-ms"></input>
+			<p>Decay</p><input type="range" id="env-dcy-ms"></input>
 		</div>
     </div>
 	<div id="edit">

@@ -15,10 +15,12 @@ window.justree = window.justree || {};
         audio.timeLenParam = config.timeLenParam;
         audio.freqMinParam = config.freqMinParam;
         audio.freqMaxRatParam = config.freqMaxRatParam;
-        audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam];
+        audio.envAtkParam = config.envAtkParam;
+        audio.envDcyParam = config.envDcyParam;
+        audio.params = [audio.gainParam, audio.timeLenParam, audio.freqMinParam, audio.freqMaxRatParam, audio.envAtkParam, audio.envDcyParam];
         for (var i = 0; i < audio.params.length; ++i) {
             var param = audio.params[i];
-            param.valLast = param.val;
+            param.valLast = param.valInit;
         }
 
 		var audioCtx = audio.audioCtx = new window.AudioContext();
