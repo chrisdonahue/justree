@@ -440,6 +440,69 @@ window.justree = window.justree || {};
         }
     });
 
+
+    var callbackEditSelectionDecorator = function (callback) {
+        return function () {
+            var nodeSelected = shared.getNodeSelected();
+            if (nodeSelected !== null) {
+                var backup = shared.getNodeRoot().getCopy();
+                var subtreeModified = callback(nodeSelected);
+                if (subtreeModified !== null) {
+                    shared.undoStackPushChange(backup);
+                    //shared.undoDebugPrint();
+                    if (subtreeModified.isRoot()) {
+                        shared.setNodeRoot(subtreeModified);
+                    }
+                    debugAssert(shared.getNodeRoot().isSane(), 'Root node insane after edit.');
+                    shared.rescanNodeRootSubtree(subtreeModified);
+                    video.repaint();
+                }
+            }
+        }
+    };
+    var justreesShared = {};
+    var callbackShareLoadGenerator = function (i) {
+        return function () {
+            /*
+            try {
+                var loaded = tree.treeParse(justreesShared[i]);
+            }
+            catch (e) {
+                console.log(e);
+                alert('Invalid tree. Try another one.');
+                return;
+            }
+            */
+            var loaded = tree.treeParse(justreesShared[i]);
+
+            shared.clearNodeSelected();
+            var backup = shared.getNodeRoot().getCopy();
+            shared.undoStackPushChange(backup);
+            shared.setNodeRoot(loaded);
+            shared.rescanNodeRootSubtree(loaded);
+            video.repaint();
+        };
+    };
+    var callbackShareUpdate = function (data) {
+        var $tbody = $('table#shared tbody');
+        $tbody.find('tr').remove();
+        for (var i = 0; i < data.length; ++i) {
+            var justree = data[i];
+            var $tr = $('<tr></tr>');
+            var $tdauth = $('<td class="author"></td>');
+            $tdauth.html(justree.author);
+            var $tdname = $('<td class="name"></td>');
+            $tdname.html(justree.name);
+            var $tdload = $('<td class="load"><button>Load</button></td>');
+            $tdload.find('button').on('click', callbackShareLoadGenerator(i));
+            $tr.append($tdauth);
+            $tr.append($tdname);
+            $tr.append($tdload);
+            $tbody.append($tr);
+            justreesShared[i] = justree.justree;
+        }
+    };
+
 	/* init */
 	var callbackDomReady = function () {
         // init
@@ -583,21 +646,7 @@ window.justree = window.justree || {};
         callbackReverbToggle();
 
         // share load
-        $.ajax({
-            type: 'GET',
-            url: config.shareRoute,
-            xhrFields: {
-                withCredentials: false
-            },
-            headers: {
-            },
-            success: function () {
-                console.log('success');
-            },
-            error: function () {
-                console.log('error');
-            }
-        });
+        $.get(config.shareRoute, callbackShareUpdate);
 
         // viewport resize callback
 		$(window).resize(video.callbackWindowResize);

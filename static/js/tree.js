@@ -239,6 +239,11 @@ window.justree = window.justree || {};
 			}
 			treeStr = treeStr.slice(1);
 		}
+		return treeStr;
+	};
+
+	var tokenize = function () {
+
 	};
 
 	var consumeToken = function(treeStr, token) {
@@ -282,7 +287,7 @@ window.justree = window.justree || {};
 	};
 
 	var treeParse = tree.treeParse = function (treeStr) {
-		treeStr = consumeWhiteSpace(treeStr);
+		var tokens = treeStr.split(/[\s,]+/);
 
 		var root = nodeParse(treeStr);
 		treeStr = root.remaining;

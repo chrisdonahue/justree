@@ -5,12 +5,13 @@
 var express = require('express');
 var expressValidator = require('express-validator');
 var bodyParser = require('body-parser');
+var path = require('path');
 var fs = require('fs');
 
 // config
 var treesDirPath = './justrees/';
 var fileEncoding = 'utf8';
-var serverPort = 3000;
+var serverPort = 80;
 
 // scan directory
 var justrees = [];
@@ -45,13 +46,17 @@ justrees.sort(function (a, b) {
 	return b.serverTimeStamp - a.serverTimeStamp;
 });
 
-// app settings
+// app middleware
 var app = express();
-app.use('/static', express.static('static'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+app.use(expressValidator([]));
+app.use(express.static('static'));
 
 // routes
+app.get('/', function (req, res) {
+	res.sendFile(path.join(__dirname + '/static/index.html'));
+});
 app.get('/justrees', function (req, res) {
 	return res.json(justrees);
 });
