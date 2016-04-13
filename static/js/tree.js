@@ -42,7 +42,7 @@ window.justree = window.justree || {};
 			if (parent === undefined) {
 				parent = null;
 			}
-			var thisCopy = new RatioNode(this.dim, this.ratio, this.on);
+			var thisCopy = new RatioNode(this.getDim(), this.getRatio(), this.getVelocity());
 			for (var i = 0; i < this.getNumChildren(); ++i) {
 				thisCopy.addChild(this.getChild(i).getCopy(thisCopy));
 			}
@@ -167,7 +167,6 @@ window.justree = window.justree || {};
 			}
 		},
 		toString: function () {
-			var velocity = this.on ? 1.0 : 0.0;
 			var string = '(' + String(this.getDim()) + ' ' + String(this.getRatio()) + ' ' + String(this.getVelocity());
 			for (var i = 0; i < this.getNumChildren(); ++i) {
 				string += ' ' + this.getChild(i).toString();

@@ -463,7 +463,6 @@ window.justree = window.justree || {};
     var justreesShared = {};
     var callbackShareLoadGenerator = function (i) {
         return function () {
-            /*
             try {
                 var loaded = tree.treeParse(justreesShared[i]);
             }
@@ -472,9 +471,6 @@ window.justree = window.justree || {};
                 alert('Invalid tree. Try another one.');
                 return;
             }
-            */
-            var loaded = tree.treeParse(justreesShared[i]);
-
             shared.clearNodeSelected();
             var backup = shared.getNodeRoot().getCopy();
             shared.undoStackPushChange(backup);
@@ -483,24 +479,58 @@ window.justree = window.justree || {};
             video.repaint();
         };
     };
-    var callbackShareUpdate = function (data) {
-        var $tbody = $('table#shared tbody');
-        $tbody.find('tr').remove();
-        for (var i = 0; i < data.length; ++i) {
-            var justree = data[i];
-            var $tr = $('<tr></tr>');
-            var $tdauth = $('<td class="author"></td>');
-            $tdauth.html(justree.author);
-            var $tdname = $('<td class="name"></td>');
-            $tdname.html(justree.name);
-            var $tdload = $('<td class="load"><button>Load</button></td>');
-            $tdload.find('button').on('click', callbackShareLoadGenerator(i));
-            $tr.append($tdauth);
-            $tr.append($tdname);
-            $tr.append($tdload);
-            $tbody.append($tr);
-            justreesShared[i] = justree.justree;
-        }
+    var callbackShareUpload = function () {
+        var submission = {
+            'timeLen': audio.timeLenParam.val,
+            'freqMin': audio.freqMinParam.val,
+            'freqMaxRat': audio.freqMaxRatParam.val,
+            'author': $('#upload #author').val(),
+            'name': $('#upload #name').val(),
+            'justree': shared.getNodeRoot().toString()
+        };
+        $.ajax({
+            'method': 'POST',
+            'url': config.shareRoute,
+            'data': submission,
+            'success': callbackShareUpdate,
+            'error': function (data) {
+                if (data.status === 400) {
+                    alert(data.responseText);
+                }
+                else {
+                    alert('Failed to validate. Ask Chris...');
+                }
+            }
+        });
+    };
+    var callbackShareUpdate = function () {
+        $.ajax({
+            'method': 'GET',
+            'url': config.shareRoute,
+            'success': function (data) {
+                var $tbody = $('table#shared tbody');
+                $tbody.find('tr').remove();
+                for (var i = 0; i < data.length; ++i) {
+                    var justree = data[i];
+                    var $tr = $('<tr></tr>');
+                    var $tdauth = $('<td class="author"></td>');
+                    $tdauth.html(justree.author);
+                    var $tdname = $('<td class="name"></td>');
+                    $tdname.html(justree.name);
+                    var $tdload = $('<td class="load"><button>Load</button></td>');
+                    $tdload.find('button').on('click', callbackShareLoadGenerator(i));
+                    $tr.append($tdauth);
+                    $tr.append($tdname);
+                    $tr.append($tdload);
+                    $tbody.append($tr);
+                    justreesShared[i] = justree.justree;
+                }
+            },
+            'error': function () {
+                $('button#server').prop('disabled', true);
+                alert('Server error. Sharing disabled');
+            }
+        });
     };
 
 	/* init */
@@ -646,7 +676,8 @@ window.justree = window.justree || {};
         callbackReverbToggle();
 
         // share load
-        $.get(config.shareRoute, callbackShareUpdate);
+        $('#upload button').on('click', callbackShareUpload);
+        callbackShareUpdate();
 
         // viewport resize callback
 		$(window).resize(video.callbackWindowResize);

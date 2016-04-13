@@ -2,6 +2,7 @@
 // https://www.thepolyglotdeveloper.com/2015/10/create-a-simple-restful-api-with-node-js/
 
 // imports
+var util = require('util');
 var express = require('express');
 var expressValidator = require('express-validator');
 var bodyParser = require('body-parser');
@@ -34,7 +35,7 @@ for (var i in files) {
 		if (!('serverTimeStamp' in justree)) {
 			throw 'serverTimeStamp field not found';
 		}
-		justrees[fileId] = justree;
+		justrees.push(justree);
 	}
 	catch (e) {
 		console.log(fileName + ': ' + String(e));
@@ -61,7 +62,37 @@ app.get('/justrees', function (req, res) {
 	return res.json(justrees);
 });
 app.post('/justrees', function (req, res) {
-	console.log(req);
+	// validate
+	req.checkBody('timeLen', 'Invalid time length.').notEmpty().isFloat({'min': 0.0});
+	req.checkBody('freqMin', 'Invalid min frequency.').notEmpty().isFloat({'min': 0.0});
+	req.checkBody('freqMaxRat', 'Invalid min frequency ratio.').notEmpty().isFloat({'min': 0.0});
+	req.checkBody('author', 'Invalid author.').isLength({min: 1, max: 32});
+	req.checkBody('name', 'Invalid name.').isLength({min: 1, max: 64});
+	req.checkBody('justree', 'Invalid tree.').isLength({min: 3});
+
+	// return errors if there are some
+	var errors = req.validationErrors();
+	if (errors) {
+		var errorText = errors[0].msg;
+		res.status(400).send(errorText);
+		return;
+	}
+
+	// sanitize
+	req.sanitizeBody('timeLen').toFloat();
+	req.sanitizeBody('freqMin').toFloat();
+	req.sanitizeBody('freqMaxRat').toFloat();
+	var justree = req.body;
+	var fileId = new Date().getTime();
+	justree.serverTimeStamp = fileId;
+
+	// create file
+	var justreeJson = JSON.stringify(justree);
+	fs.writeFileSync(treesDirPath + fileId + '.json', justreeJson, fileEncoding);
+
+	// push to array
+	justrees.unshift(justree);
+	res.send('Success');
 });
 
 // start server
