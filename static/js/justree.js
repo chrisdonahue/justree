@@ -81,7 +81,6 @@ window.justree = window.justree || {};
             var offset = $(event.target).offset();
             var x = touch.pageX - offset.left;
             var y = touch.pageY - offset.top;
-            console.log(String(x) + ', ' + String(y));
             var nodeSelected = video.posAbsToLeafNode(x, y);
             if (nodeSelected === null) {
                 continue;
