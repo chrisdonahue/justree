@@ -100,12 +100,7 @@ window.justree = window.justree || {};
         for (var i = 0; i < leafCellsSorted.length; ++i) {
             var cell = leafCellsSorted[i];
             var cellAbsBb = relToAbsBb(cell);
-            if (cell.node.getVelocity() > 0.0) {
-                ctx.fillStyle = 'rgb(200, 200, 200)';
-            }
-            else {
-                ctx.fillStyle = 'rgb(25, 25, 25)';
-            }
+            ctx.fillStyle = 'rgb(25, 25, 25)';
             ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
             ctx.strokeStyle = 'rgb(0, 255, 255)';
             ctx.rect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
@@ -118,6 +113,22 @@ window.justree = window.justree || {};
         // copy from buffer
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         ctx.drawImage(canvasBuffer, 0, 0);
+
+        // draw velocities
+        var leafCellsSorted = shared.getNodeRootLeafCellsSorted();
+        for (var i = 0; i < leafCellsSorted.length; ++i) {
+            var cell = leafCellsSorted[i];
+            if (cell.node.getVelocity() <= 0.0) {
+                continue;
+            }
+
+            var cellAbsBb = relToAbsBb(cell);
+            ctx.fillStyle = 'rgb(200, 200, 200)';
+            ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
+            ctx.strokeStyle = 'rgb(0, 255, 255)';
+            ctx.rect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
+            ctx.stroke();
+        }
 
         // draw selected
         var nodeSelected = shared.getNodeSelected();
