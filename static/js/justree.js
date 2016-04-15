@@ -123,7 +123,7 @@ window.justree = window.justree || {};
         $slider.attr('step', param.step);
         $slider.attr('value', param.val);
         $slider.on('input', function (event) {
-            param.val = event.target.value;
+            param.val = Number(event.target.value);
         });
     };
 

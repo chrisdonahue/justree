@@ -3,153 +3,52 @@ window.justree = window.justree || {};
 (function (WebSocketPort, justree) {
     var config = justree.config;
     var clock = justree.clock;
+    var shared = justree.shared;
 
     var clientFingerprint = config.clientFingerprint;
     var ModalEnum = shared.ModalEnum;
     var gainParam = config.gainParam;
+    var timeLenParam = config.timeLenParam;
     var freqMinParam = config.freqMinParam;
     var freqMaxRatParam = config.freqMaxRatParam;
-    var timeoutRateParam = config.timeoutRateParam;
+    var envAtkParam = config.envAtkParam;
+    var envDcyParam = config.envDcyParam;
+    var noteOnAddress = config.oscNoteOnAddress;
 
     /* private state */
     var connected = false;
     var socketOsc = null;
     var clockCallback = function (clockPosRelStart, clockPosRelDelta) {
-        /*
-        var sampleRate = osc.sampleRate;
-        var sampleRateInverse = osc.sampleRateInverse;
+        var cells = shared.getNodeRootLeafCellsSorted();
+        var clockPosRelEnd = clockPosRelStart + clockPosRelDelta;
 
-        var blockOut = event.outputBuffer;
-        var blockLen = blockOut.length;
-
-        // convenience pointers to our internal buffer
-        var block = osc.synthBuffer;
-        var block0 = block.channelGet(0);
-        var block1 = block.channelGet(1);
-        var block2 = block.channelGet(2);
-
-        // clear buffer
-        osc.synthBuffer.clear();
-
-        if (shared.playheadState !== oscStateEnum.STOPPED &&
-            shared.leafCellsSorted !== null &&
-            shared.leafCellsSorted.length > 0) {
-            // calculate/dezipper (TODO) UI parameters
-            var gain = osc.gainParam.val;
-            gain = gain * gain * gain * gain;
-
-            // relative time
-            var playheadPosStart = shared.playheadPosRel;
-            var playheadPosStep = 1.0 / (sampleRate * osc.timeLenParam.val);
-            var playheadPosStepBlock = playheadPosStep * blockLen;
-            var playheadPosEnd = playheadPosStart + playheadPosStepBlock;
-            //console.log(String(playheadPosStart) + '->' + String(playheadPosEnd));
-
-            // TODO edge case: no voices available but one will be at some point in this block
-
-            // check if any voices starting or ending this block
-            // TODO: deal with cell starts on loop
-            var cells = shared.leafCellsSorted;
-            var cellsIdxStarting = [];
-            var cellsIdxEnding = [];
-            var cellCurrIdx = 0;
-            while (cellCurrIdx < cells.length) {
-                var cellCurr = cells[cellCurrIdx];
-                var cellCurrStart = cellCurr.x;
-                var cellCurrEnd = cellCurr.x + cellCurr.width;
-                if (cellCurrStart >= playheadPosStart && cellCurrStart < playheadPosEnd && cellCurr.node.getVelocity() > 0.0) {
-                    cellsIdxStarting.push(cellCurrIdx);
-                }
-                if (cellCurrEnd >= playheadPosStart && cellCurrEnd < playheadPosEnd && cellCurr.node.getVelocity() > 0.0) {
-                    cellsIdxEnding.push(cellCurrIdx);
-                }
-                ++cellCurrIdx;
-            }
-
-            if (cellsIdxStarting.length > 0 || cellsIdxEnding.length > 0) {
-                //console.log(String(cellsIdxStarting.length) + ', ' + String(cellsIdxEnding.length));
-            }
-
-            // assign cell starts to voices
-            var cellIdxToVoiceIdx = osc.synthCellIdxToVoiceIdx;
-            var voicesIdxAvailable = osc.synthVoicesIdxAvailable;
-            while (cellsIdxStarting.length > 0 && voicesIdxAvailable.length > 0) {
-                cellIdxToVoiceIdx[cellsIdxStarting.pop()] = voicesIdxAvailable.pop();
-            }
-
-            // render voices
-            var synthVoices = osc.synthVoices;
-            var freqMin = osc.freqMinParam.val;
-            var freqMaxRat = osc.freqMaxRatParam.val;
-            var envRangeMap = osc.envRangeMap;
-            var envTabRead = osc.envTabRead;
-            _.each(cellIdxToVoiceIdx, function (value, key) {
-                // calculate sine waves for each active voice
-                var cell = cells[key];
-                var voice = synthVoices[value];
-                var freqHz = freqMin * Math.pow(freqMaxRat, 1.0 - (cell.y + cell.height));
-                var freqRel = freqHz * sampleRateInverse;
-
-                for (var sample = 0; sample < blockLen; ++sample) {
-                    block0[sample] = freqRel;
-                }
-                voice.perform(block, 0, 0, blockLen);
-
-                // calculate envelope phasor
-                var cellWidthInv = 1.0 / cell.width;
-                var cellFrac = (playheadPosStart - cell.x) * cellWidthInv;
-                var cellFracStep = playheadPosStep * cellWidthInv;
-                for (var sample = 0; sample < blockLen; ++sample) {
-                    block1[sample] = cellFrac;
-                    cellFrac += cellFracStep;
-                }
-
-                // map to table range
-                envRangeMap.perform(block, 1, 0, blockLen);
-
-                // generate envelope
-                envTabRead.perform(block, 1, 0, blockLen);
-
-                // add enveloped sinusoid to sum
-                for (var sample = 0; sample < blockLen; ++sample) {
-                    block2[sample] += block0[sample] * block1[sample];
-                }
-            });
-
-            // release cell ends from voices
-            while (cellsIdxEnding.length > 0) {
-                var cellIdx = cellsIdxEnding.pop();
-                if (cellIdx in cellIdxToVoiceIdx) {
-                    var voiceIdx = cellIdxToVoiceIdx[cellIdx];
-                    delete cellIdxToVoiceIdx[cellIdx];
-                    voicesIdxAvailable.push(voiceIdx);
-                    synthVoices[voiceIdx].phaseReset();
-                }
-            }
-
-            // increment playhead
-            shared.playheadPosRel = playheadPosEnd;
-
-            // apply gain
-            for (var sample = 0; sample < blockLen; ++sample) {
-                block2[sample] *= gain;
-            }
-
-            // saturate (soft clip)
-            osc.saturateRangeMap.perform(block, 2, 0, blockLen);
-            osc.saturateTabRead.perform(block, 2, 0, blockLen);
-        }
-
-        // copy our mono synth to other channels
-        for (var channel = 0; channel < blockOut.numberOfChannels; ++channel) {
-            var blockOutCh = blockOut.getChannelData(channel);
-            for (var sample = 0; sample < blockLen; ++sample) {
-                blockOutCh[sample] = block2[sample];
+        var cellsEmitting = [];
+        for (var i = 0; i < cells.length; ++i) {
+            var cell = cells[i];
+            var cellStart = cell.x;
+            if (cellStart >= clockPosRelStart && cellStart < clockPosRelEnd && cell.node.getVelocity() > 0.0) {
+                cellsEmitting.push(cell);
             }
         }
 
-        // stop or loop
-        */
+        if (cellsEmitting.length == 0) {
+            return;
+        }
+
+        var timeLen = timeLenParam.val;
+        var freqMin = freqMinParam.val;
+        var freqMaxRat = freqMaxRatParam.val;
+        var envAtk = envAtkParam.val;
+        var envDcy = envDcyParam.val;
+        for (var i = 0; i < cellsEmitting.length; ++i) {
+            var cell = cellsEmitting[i];
+            var freqBase = freqMin * Math.pow(freqMaxRat, 1.0 - (cell.y + cell.height));
+            var freqCutoff = freqMin * Math.pow(freqMaxRat, 1.0 - cell.y);
+            var velocity = cell.node.getVelocity();
+            var envLen = cell.width * timeLen * 1000.0;
+
+            osc.serverSendMsg(noteOnAddress, [freqBase, freqCutoff, velocity, envAtk, envDcy, envLen]);
+        }
     };
     var callbackServerOpen = function (event) {
         console.log('socket open');
@@ -200,12 +99,13 @@ window.justree = window.justree || {};
         serverConnected = false;
         serverSocket = null;
     };
-    osc.serverSendMsg = function (messageAddress, parameters) {
-        parameters = parameters || [];
+    osc.serverSendMsg = function (address, args) {
+        args = args || [];
+        console.log(args);
         if (serverConnected) {
             serverSocket.send({
-                address: messageAddress,
-                args: [clientFingerprint].concat(parameters)
+                address: address,
+                args: [clientFingerprint].concat(args)
             });
         }
     };
