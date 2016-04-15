@@ -103,8 +103,7 @@ window.justree = window.justree || {};
             ctx.fillStyle = 'rgb(25, 25, 25)';
             ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
             ctx.strokeStyle = 'rgb(0, 255, 255)';
-            ctx.rect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
-            ctx.stroke();
+            ctx.strokeRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
         }
     };
 	video.repaintDom = function () {
@@ -126,8 +125,7 @@ window.justree = window.justree || {};
             ctx.fillStyle = 'rgb(200, 200, 200)';
             ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
             ctx.strokeStyle = 'rgb(0, 255, 255)';
-            ctx.rect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
-            ctx.stroke();
+            ctx.strokeRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
         }
 
         // draw selected
