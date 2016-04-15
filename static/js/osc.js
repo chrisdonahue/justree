@@ -17,6 +17,7 @@ window.justree = window.justree || {};
     var clockCallback = function (clockPosRelStart, clockPosRelDelta) {
         var sampleRate = osc.sampleRate;
         var sampleRateInverse = osc.sampleRateInverse;
+
         var blockOut = event.outputBuffer;
         var blockLen = blockOut.length;
 

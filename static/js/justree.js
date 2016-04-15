@@ -140,7 +140,10 @@ window.justree = window.justree || {};
         var touchEvent = event.originalEvent;
         for (var i = 0; i < touchEvent.changedTouches.length; ++i) {
             var touch = touchEvent.changedTouches[i];
-            var nodeSelected = video.posAbsToLeafNode(touch.clientX, touch.clientY);
+            var offset = $(event.target).offset();
+            var x = touch.pageX - offset.left;
+            var y = touch.pageY - offset.top;
+            var nodeSelected = video.posAbsToLeafNode(x, y);
             if (nodeSelected === null) {
                 continue;
             }
@@ -605,6 +608,9 @@ window.justree = window.justree || {};
         clock.init();
         osc.init();
 		video.init('justree-ui');
+
+        // connect
+        server.connect(config.synthIp, config.synthPort);
 		
 		// generate tree
 		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.breadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
@@ -612,16 +618,8 @@ window.justree = window.justree || {};
         rescanNodeRootSubtree();
 
         // modal callbacks
-        $('button#server').on('click', function () {
-            modalState = ModalEnum.SERVER;
-            $('div#hear').hide();
-            $('div#edit').hide();
-            $('div#share').hide();
-            $('div#server').show();
-        });
         $('button#hear').on('click', function () {
             modalState = ModalEnum.HEAR;
-            $('div#server').hide();
             $('div#edit').hide();
             $('div#share').hide();
             $('div#hear').show();
@@ -631,14 +629,12 @@ window.justree = window.justree || {};
         });
         $('button#edit').on('click', function () {
             modalState = ModalEnum.EDIT;
-            $('div#server').hide();
             $('div#hear').hide();
             $('div#share').hide();
             $('div#edit').show();
         });
         $('button#share').on('click', function () {
             modalState = ModalEnum.SHARE;
-            $('div#server').hide();
             $('div#hear').hide();
             $('div#edit').hide();
             $('div#share').show();
@@ -737,6 +733,8 @@ window.justree = window.justree || {};
         hookParamToSlider(config.timeLenParam, '#synthesis #time-len');
         hookParamToSlider(config.freqMinParam, '#synthesis #freq-min');
         hookParamToSlider(config.freqMaxRatParam, '#synthesis #freq-max-rat');
+        hookParamToSlider(audio.envAtkParam, '#synthesis #env-atk-ms');
+        hookParamToSlider(audio.envDcyParam, '#synthesis #env-dcy-ms');
 
         // share load
         $('#upload button').on('click', callbackShareUpload);

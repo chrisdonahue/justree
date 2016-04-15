@@ -7,12 +7,24 @@ window.justree = window.justree || {};
 
     // tree params
     config.breadthMax = 3;
-    config.depthMin = 2;
-    config.depthMax = 3;
+    config.growDepthMin = 2;
+    config.growDepthMax = 5;
     config.nDims = 2;
     config.pTerm = 0.5;
     config.pOn = 0.0;
     config.ratios = [1, 2, 3];
+    config.growDepthMaxParam = {
+        'min': 1,
+        'max': 6,
+        'step': 1,
+        'valInit': 4
+    };
+    config.growBreadthMaxParam = {
+        'min': 2,
+        'max': 6,
+        'step': 1,
+        'valInit': 2
+    };
 
     // hear params
     config.gainParam = {
@@ -45,6 +57,18 @@ window.justree = window.justree || {};
         'max': 10,
         'step': 1,
         'valInit': 6
+    };
+    config.envAtkParam = {
+        'min': 0.0,
+        'max': 100.0,
+        'step': 10.0,
+        'valInit': 5.0,
+    };
+    config.envDcyParam = {
+        'min': 0.0,
+        'max': 1000.0,
+        'step': 100.0,
+        'valInit': 50.0
     };
 
     // edit params
