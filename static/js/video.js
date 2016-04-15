@@ -6,13 +6,7 @@ window.justree = window.justree || {};
     var clock = justree.clock;
 
 	var video = justree.video = {};
-    var OrientationEnum = video.OrientationEnum = {
-    	'PORTRAIT': 0,
-    	'LANDSCAPE': 1
-    };
-	video.orientationGet = function (width, height) {
-		return width > height ? OrientationEnum.LANDSCAPE : OrientationEnum.PORTRAIT;
-	};
+
 	var rgbToString = video.rgbToString = function (rgb) {
 		return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
 	};
@@ -42,30 +36,28 @@ window.justree = window.justree || {};
 
 	    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 	};
-	video.init = function (canvasId) {
-		video.canvas = $('#justree-ui').get(0);
-		video.canvasCtx = video.canvas.getContext('2d');
-		video.viewportWidth = -1;
-		video.viewportHeight = -1;
-		video.canvasWidth = -1;
-		video.canvasHeight = -1;
-        video.zoomCell = null;
-        //clock.registerCallback(video.repaint);
+
+    var canvasWidth = -1;
+    var canvasHeight = -1;
+    var canvasDom = null;
+    var canvasDomCtx = null;
+    var canvasBuffer = document.createElement('canvas');
+    var canvasBufferCtx = canvasBuffer.getContext('2d');
+	video.init = function (canvasDomElement) {
+        canvasDom = canvasDomElement;
+        canvasDomCtx = canvasDom.getContext('2d');
 	};
-	video.callbackWindowResize = function () {
-		var viewportWidth = $(window).width();
-		var viewportHeight = $(window).height();
-		if (viewportWidth !== video.viewportWidth || viewportHeight !== video.viewportHeight) {
-			video.viewportHeight = viewportWidth;
-			video.viewportWidth = viewportHeight;
-			video.canvasWidth = video.canvas.width;
-			video.canvasHeight = video.canvas.height;
-			video.repaint();
-		}
+	video.callbackCanvasResize = function () {
+        canvasWidth = canvasDom.width;
+        canvasHeight = canvasDom.height;
+        canvasBuffer.width = canvasWidth;
+        canvasBuffer.height = canvasHeight;
+        video.repaintBuffer();
+        video.repaintDom();
 	};
     video.posAbsToLeafNode = function (x, y) {
-        var width = video.canvasWidth;
-        var height = video.canvasHeight;
+        var width = canvasWidth;
+        var height = canvasHeight;
         var leafCellsSorted = shared.getNodeRootLeafCellsSorted();
         for (var i = 0; i < leafCellsSorted.length; ++i) {
             var cell = leafCellsSorted[i];
@@ -80,72 +72,60 @@ window.justree = window.justree || {};
         }
         return null;
     };
-
-    video.setZoomCell = function (cell) {
-        video.zoomCell = cell;
-    };
 	video.animate = function () {
-		video.repaint();
+		video.repaintDom();
 		window.requestAnimationFrame(video.animate);
 	};
-	video.repaint = function () {
-		var ctx = video.canvasCtx;
-		var canvasWidth = video.canvasWidth;
-		var canvasHeight = video.canvasHeight;
-        var zoomCell = video.zoomCell;
-        var zoomBb;
-        if (zoomCell === null) {
-            zoomBb = {
-                'x': 0.0,
-                'y': 0.0,
-                'width': 1.0,
-                'height': 1.0
-            };
-        }
-        else {
-            zoomBb = zoomCell;
-        }
+    video.repaintFull = function () {
+        video.repaintBuffer();
+        video.repaintDom();
+    };
 
-        var relBbToAbsBb = function (relBb) {
-            var x0 = (relBb.x - zoomBb.x) * canvasWidth;
-            var y0 = (relBb.y - zoomBb.y) * canvasHeight;
-            var x1 = ((relBb.x + relBb.width) - zoomBb.x) * canvasWidth;
-            var y1 = ((relBb.y + relBb.height) - zoomBb.y) * canvasHeight;
-            return {
-                'x': x0,
-                'y': y0,
-                'width': x1 - x0,
-                'height': y1 - y0
-            }
+    var relToAbsBb = function (relBb) {
+        return {
+            'x': relBb.x * canvasWidth,
+            'y': relBb.y * canvasHeight,
+            'width': relBb.width * canvasWidth,
+            'height': relBb.height * canvasHeight
         };
+    };
+    video.repaintBuffer = function () {
+        var ctx = canvasBufferCtx;
 
         // clear
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         // draw treemap
         var leafCellsSorted = shared.getNodeRootLeafCellsSorted();
-		for (var i = 0; i < leafCellsSorted.length; ++i) {
-			var cell = leafCellsSorted[i];
-            var absBb = relBbToAbsBb(cell);
+        for (var i = 0; i < leafCellsSorted.length; ++i) {
+            var cell = leafCellsSorted[i];
+            var cellAbsBb = relToAbsBb(cell);
             if (cell.node.getVelocity() > 0.0) {
                 ctx.fillStyle = 'rgb(200, 200, 200)';
             }
             else {
                 ctx.fillStyle = 'rgb(25, 25, 25)';
             }
-            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
+            ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
             ctx.strokeStyle = 'rgb(0, 255, 255)';
-            ctx.rect(absBb.x, absBb.y, absBb.width, absBb.height);
+            ctx.rect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
             ctx.stroke();
-		}
+        }
+    };
+	video.repaintDom = function () {
+        var ctx = canvasDomCtx;
+
+        // copy from buffer
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(canvasBuffer, 0, 0);
 
         // draw selected
         var nodeSelected = shared.getNodeSelected();
         if (nodeSelected !== null) {
             var cellSelected = nodeSelected.cell;
+            var cellAbsBb = relToAbsBb(cellSelected);
             ctx.fillStyle = 'rgba(255, 0, 100, 0.5)';
-            var absBb = relBbToAbsBb(cellSelected);
-            ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);
+            ctx.fillRect(cellAbsBb.x, cellAbsBb.y, cellAbsBb.width, cellAbsBb.height);
         }
 
         // draw playback line
@@ -153,7 +133,7 @@ window.justree = window.justree || {};
         if (clockPosRel >= 0.0) {
             ctx.strokeStyle = 'rgb(255, 0, 0)';
             ctx.beginPath();
-            var playheadX = relBbToAbsBb({'x': clockPosRel}).x;
+            var playheadX = clockPosRel * canvasWidth;
             ctx.moveTo(playheadX, 0);
             ctx.lineTo(playheadX, canvasHeight);
             ctx.stroke();

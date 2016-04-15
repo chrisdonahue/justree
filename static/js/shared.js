@@ -93,6 +93,7 @@ window.justree = window.justree || {};
     shared.getNodeRootLeafCellsSorted = function () {
         return leafCellsSorted;
     };
+
     shared.getNodeSelected = function () {
         return nodeSelected;
     };

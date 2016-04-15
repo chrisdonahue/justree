@@ -145,7 +145,7 @@ window.justree = window.justree || {};
             switch (modalState) {
                 case ModalEnum.HEAR:
                     nodeSelected.setVelocity(nodeSelected.getVelocity() > 0.0 ? 0.0 : 1.0);
-                    video.repaint();
+                    video.repaintDom();
                     break;
                 case ModalEnum.EDIT:
                     var nodeSelectedPrev = getNodeSelected();
@@ -157,7 +157,7 @@ window.justree = window.justree || {};
                         setNodeSelected(nodeSelected);                    
                     }
                     navChildStack = [];
-                    video.repaint();
+                    video.repaintDom();
                     break;
                 default:
                     break;
@@ -231,7 +231,7 @@ window.justree = window.justree || {};
         var nodeSelected = getNodeSelected();
         if (nodeSelected !== null) {
             video.setZoomCell(nodeSelected.cell);
-            video.repaint();
+            video.repaintFull();
         }
     };
 
@@ -241,7 +241,7 @@ window.justree = window.justree || {};
             clearNodeSelected();
             setNodeRoot(statePrev);
             rescanNodeRootSubtree();
-            video.repaint();
+            video.repaintFull();
         }
         //undoDebugPrint();
     };
@@ -251,7 +251,7 @@ window.justree = window.justree || {};
             clearNodeSelected();
             setNodeRoot(stateNext);
             rescanNodeRootSubtree();
-            video.repaint();
+            video.repaintFull();
         }
         //undoDebugPrint();
     };
@@ -270,16 +270,16 @@ window.justree = window.justree || {};
                     }
                     debugAssert(getNodeRoot().isSane(), 'Root node insane after edit.');
                     rescanNodeRootSubtree(subtreeModified);
-                    video.repaint();
+                    video.repaintFull();
                 }
             }
         }
     };
+
     var refreshGridDisplay = function () {
         $('#x-disp').html(gridX);
         $('#y-disp').html(gridY);
     };
-
     var gridX = 2;
     var gridY = 2;
     var callbackGridXIncrement = function () {
@@ -502,26 +502,6 @@ window.justree = window.justree || {};
         }
     });
 
-
-    var callbackEditSelectionDecorator = function (callback) {
-        return function () {
-            var nodeSelected = getNodeSelected();
-            if (nodeSelected !== null) {
-                var backup = getNodeRoot().getCopy();
-                var subtreeModified = callback(nodeSelected);
-                if (subtreeModified !== null) {
-                    undoStackPushChange(backup);
-                    //undoDebugPrint();
-                    if (subtreeModified.isRoot()) {
-                        setNodeRoot(subtreeModified);
-                    }
-                    debugAssert(getNodeRoot().isSane(), 'Root node insane after edit.');
-                    rescanNodeRootSubtree(subtreeModified);
-                    video.repaint();
-                }
-            }
-        }
-    };
     var justreesShared = {};
     var callbackShareLoadGenerator = function (i) {
         return function () {
@@ -538,7 +518,7 @@ window.justree = window.justree || {};
             undoStackPushChange(backup);
             setNodeRoot(loaded);
             rescanNodeRootSubtree(loaded);
-            video.repaint();
+            video.repaintFull();
         };
     };
     var callbackShareUpload = function () {
@@ -600,8 +580,9 @@ window.justree = window.justree || {};
         // init
         shared.init();
         clock.init();
-        video.init('justree-ui');
+        video.init($('#justree-ui').get(0));
         osc.init();
+        osc.serverConnect();
 		
 		// generate tree
 		var root = tree.treeGrow(0, config.initDepthMin, config.initDepthMax, config.initBreadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
@@ -616,7 +597,7 @@ window.justree = window.justree || {};
             $('div#hear').show();
             clearNodeSelected();
             navChildStack = [];
-            video.repaint();
+            video.repaintDom();
         });
         $('button#edit').on('click', function () {
             modalState = ModalEnum.EDIT;
@@ -631,7 +612,7 @@ window.justree = window.justree || {};
             $('div#share').show();
             clearNodeSelected();
             navChildStack = [];
-            video.repaint();
+            video.repaintDom();
         });
         $('button#grid').on('click', function () {
             generateState = GenerateEnum.GRID;
@@ -723,8 +704,8 @@ window.justree = window.justree || {};
         callbackShareUpdate();
 
         // viewport resize callback
-		$(window).resize(video.callbackWindowResize);
-        video.callbackWindowResize();
+		$(window).resize(video.callbackCanvasResize);
+        video.callbackCanvasResize();
 
         // request animation
         window.requestAnimationFrame(video.animate);

@@ -80,7 +80,7 @@ window.justree = window.justree || {};
 
     // network params
     config.oscServerIp = 'localhost';
-    config.oscServerPort = 1234;
+    config.oscServerPort = 1235;
     config.shareRoute = '/justrees'
     
     // debug

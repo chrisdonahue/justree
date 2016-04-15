@@ -154,7 +154,7 @@ window.justree = window.justree || {};
     var callbackServerOpen = function (event) {
         console.log('socket open');
         serverConnected = true;
-        server.sendOsc('/connect');
+        osc.serverSendMsg('/connect');
     };
     var callbackServerClose = function (event) {
         console.log('socket close');
