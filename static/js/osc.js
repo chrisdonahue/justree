@@ -30,6 +30,11 @@ window.justree = window.justree || {};
             if (cellStart >= clockPosRelStart && cellStart < clockPosRelEnd && cell.node.getVelocity() > 0.0) {
                 cellsEmitting.push(cell);
             }
+            if (looping) {
+                if (cellStart >= (clockPosRelStart - 1.0) && cellStart < (clockPosRelEnd - 1.0) && cell.node.getVelocity() > 0.0) {
+                    cellsEmitting.push(cell);
+                }
+            }
         }
 
         if (cellsEmitting.length == 0) {
@@ -102,7 +107,6 @@ window.justree = window.justree || {};
     };
     osc.serverSendMsg = function (address, args) {
         args = args || [];
-        console.log(args);
         if (serverConnected) {
             serverSocket.send({
                 address: address,
