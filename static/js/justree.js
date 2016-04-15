@@ -547,6 +547,9 @@ window.justree = window.justree || {};
             'name': $('#upload #name').val(),
             'justree': getNodeRoot().toString()
         };
+        if (!confirm('Publish this tree to the server for everyone to see?')) {
+            return;
+        }
         $.ajax({
             'method': 'POST',
             'url': config.shareRoute,
