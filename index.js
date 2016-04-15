@@ -79,9 +79,12 @@ app.post('/justrees', function (req, res) {
 	}
 
 	// sanitize
+	req.sanitizeBody('velocity').toFloat();
 	req.sanitizeBody('timeLen').toFloat();
 	req.sanitizeBody('freqMin').toFloat();
 	req.sanitizeBody('freqMaxRat').toFloat();
+	req.sanitizeBody('envAtkMs').toFloat();
+	req.sanitizeBody('envDcyMs').toFloat();
 	var justree = req.body;
 	var fileId = new Date().getTime();
 	justree.serverTimeStamp = fileId;

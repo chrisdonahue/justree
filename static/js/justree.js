@@ -507,14 +507,25 @@ window.justree = window.justree || {};
     var justreesShared = {};
     var callbackShareLoadGenerator = function (i) {
         return function () {
+            var jsonShared = justreesShared[i];
             try {
-                var loaded = tree.treeParse(justreesShared[i]);
+                var loaded = tree.treeParse(jsonShared.justree);
             }
             catch (e) {
                 console.log(e);
                 alert('Invalid tree. Try another one.');
                 return;
             }
+
+            // update sliders
+            $('#gain').attr('value', jsonShared.velocity).trigger('input');
+            $('#time-len').attr('value', jsonShared.timeLen).trigger('input');
+            $('#freq-min').attr('value', jsonShared.freqMin).trigger('input');
+            $('#freq-max-rat').attr('value', jsonShared.freqMaxRat).trigger('input');
+            $('#env-atk-ms').attr('value', jsonShared.envAtkMs).trigger('input');
+            $('#env-dcy-ms').attr('value', jsonShared.envDcyMs).trigger('input');
+
+            // update UI
             clearNodeSelected();
             var backup = getNodeRoot().getCopy();
             undoStackPushChange(backup);
@@ -525,9 +536,13 @@ window.justree = window.justree || {};
     };
     var callbackShareUpload = function () {
         var submission = {
-            'timeLen': audio.timeLenParam.val,
-            'freqMin': audio.freqMinParam.val,
-            'freqMaxRat': audio.freqMaxRatParam.val,
+            'velocity': config.gainParam.val,
+            'timeLen': config.timeLenParam.val,
+            'freqMin': config.freqMinParam.val,
+            'freqMaxRat': config.freqMaxRatParam.val,
+            'envAtkMs': config.envAtkParam.val,
+            'envDcyMs': config.envDcyParam.val,
+            'clientFingerprint': config.clientFingerprint,
             'author': $('#upload #author').val(),
             'name': $('#upload #name').val(),
             'justree': getNodeRoot().toString()
@@ -567,7 +582,7 @@ window.justree = window.justree || {};
                     $tr.append($tdname);
                     $tr.append($tdload);
                     $tbody.append($tr);
-                    justreesShared[i] = justree.justree;
+                    justreesShared[i] = justree;
                 }
             },
             'error': function () {
