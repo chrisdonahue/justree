@@ -120,8 +120,9 @@ window.justree = window.justree || {};
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         // draw treemap
-		for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
-			var cell = shared.leafCellsSorted[i];
+        var leafCellsSorted = shared.getNodeRootLeafCellsSorted();
+		for (var i = 0; i < leafCellsSorted.length; ++i) {
+			var cell = leafCellsSorted[i];
             var absBb = relBbToAbsBb(cell);
             if (cell.node.getVelocity() > 0.0) {
                 ctx.fillStyle = 'rgb(200, 200, 200)';
@@ -136,8 +137,9 @@ window.justree = window.justree || {};
 		}
 
         // draw selected
-        if (shared.nodeSelected !== null) {
-            var cellSelected = shared.nodeSelected.cell;
+        var nodeSelected = shared.getNodeSelected();
+        if (nodeSelected !== null) {
+            var cellSelected = nodeSelected.cell;
             ctx.fillStyle = 'rgba(255, 0, 100, 0.5)';
             var absBb = relBbToAbsBb(cellSelected);
             ctx.fillRect(absBb.x, absBb.y, absBb.width, absBb.height);

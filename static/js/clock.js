@@ -45,6 +45,7 @@ window.justree = window.justree || {};
 	};
 
 	var clock = justree.clock = {};
+	clock.init = function () {};
 	clock.start = function () {
         state = ClockStateEnum.PLAYING;
         posRel = 0.0;

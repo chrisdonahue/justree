@@ -3,20 +3,23 @@ window.justree = window.justree || {};
 (function (justree) {
 	var shared = justree.shared = {};
 
-    shared.init = function () {
-        shared.nodeRoot = null;
-        shared.leafCellsSorted = [];
-    };
+    /* private */
+    var nodeRoot = null;
+    var leafCellsSorted = [];
+    var nodeSelected = null;
+
+    /* exports */
+    shared.init = function () {};
     shared.getNodeRoot = function () {
-        return shared.nodeRoot;
+        return nodeRoot;
     };
     shared.setNodeRoot = function(nodeRoot) {
-        shared.nodeRoot = nodeRoot;
-        shared.leafCellsSorted = [];
+        nodeRoot = nodeRoot;
+        leafCellsSorted = [];
     };
     shared.parseNodeRoot = function (node, depth, x, y, width, height) {
         if (node === undefined) {
-            node = shared.nodeRoot;
+            node = nodeRoot;
             x = 0.0;
             y = 0.0;
             width = 1.0;
@@ -33,7 +36,7 @@ window.justree = window.justree || {};
         node.cell = cell;
 
         if (node.isLeaf()) {
-            shared.leafCellsSorted.push(cell);
+            leafCellsSorted.push(cell);
         }
         else {
             var children = node.getChildren();
@@ -65,11 +68,11 @@ window.justree = window.justree || {};
     shared.rescanNodeRootSubtree = function (subtree) {
         subtree = subtree !== undefined ? subtree : shared.getNodeRoot();
 
-        shared.leafCellsSorted = [];
+        leafCellsSorted = [];
         if (subtree !== null) {
             shared.parseNodeRoot();
             // sort by x ascending then y descending
-            shared.leafCellsSorted.sort(function (a, b) {
+            leafCellsSorted.sort(function (a, b) {
                 var aX = a[2];
                 var aY = a[3];
                 var bX = b[2];
@@ -81,13 +84,22 @@ window.justree = window.justree || {};
                     return bY - aY;
                 }
             });
-            $('#string').html(shared.nodeRoot.toString());
+            $('#string').html(nodeRoot.toString());
         }
         else {
             $('#string').html('null');
         }
     };
     shared.getNodeRootLeafCellsSorted = function () {
-        return shared.leafCellsSorted;
+        return leafCellsSorted;
+    };
+    shared.getNodeSelected = function () {
+        return nodeSelected;
+    };
+    shared.setNodeSelected = function(nodeSelected) {
+        nodeSelected = nodeSelected;
+    };
+    shared.clearNodeSelected = function () {
+        nodeSelected = null;
     };
 })(window.justree);

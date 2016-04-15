@@ -12,14 +12,12 @@ window.justree = window.justree || {};
 	}
 
     /* imports */
-    var server = justree.server;
-    var clock = justree.clock;
-    var video = justree.video;
     var config = justree.config;
-    var shared = justree.shared;
-    var dsp = justree.dsp;
+    var clock = justree.clock;
     var tree = justree.tree;
-    var saturate = justree.saturate;
+    var shared = justree.shared;
+    var osc = justree.osc;
+    var video = justree.video;
 
     var debugAssert = config.debugAssert;
     var ModalEnum = ModalEnum;
@@ -27,6 +25,11 @@ window.justree = window.justree || {};
     var RatioNode = tree.RatioNode;
     var growDepthMaxParam = config.growDepthMaxParam;
     var growBreadthMaxParam = config.growBreadthMaxParam;
+    var setNodeRoot = shared.setNodeRoot;
+    var rescanNodeRootSubtree = shared.rescanNodeRootSubtree;
+    var getNodeSelected = shared.getNodeSelected;
+    var setNodeSelected = shared.setNodeSelected;
+    var clearNodeSelected = shared.clearNodeSelected;
 
     var GenerateEnum = {
         'GRID': 0,
@@ -40,7 +43,6 @@ window.justree = window.justree || {};
     };
 
     var generateState = GenerateEnum.GROW;
-    var nodeSelected = null;
     var undoStack = [];
     var undoStackIdx = 0;
     var modalState = ModalEnum.EDIT;
@@ -105,15 +107,6 @@ window.justree = window.justree || {};
             return result;
         }
         return null;
-    };
-    var getNodeSelected = function () {
-        return nodeSelected;
-    };
-    var setNodeSelected = function(nodeSelected) {
-        nodeSelected = nodeSelected;
-    };
-    var clearNodeSelected = function () {
-        nodeSelected = null;
     };
 
     /* callbacks */
@@ -286,26 +279,29 @@ window.justree = window.justree || {};
         }
     };
     var refreshGridDisplay = function () {
-        $('#x-disp').html(ui.gridX);
-        $('#y-disp').html(ui.gridY);
+        $('#x-disp').html(gridX);
+        $('#y-disp').html(gridY);
     };
+
+    var gridX = 2;
+    var gridY = 2;
     var callbackGridXIncrement = function () {
-        ui.gridX += 1;
+        gridX += 1;
         refreshGridDisplay();
     };
     var callbackGridXDecrement = function () {
-        if (ui.gridX >= 2) {
-            ui.gridX -= 1;
+        if (gridX >= 2) {
+            gridX -= 1;
         }
         refreshGridDisplay();
     };
     var callbackGridYIncrement = function () {
-        ui.gridY += 1;
+        gridY += 1;
         refreshGridDisplay();
     };
     var callbackGridYDecrement = function () {
-        if (ui.gridY >= 2) {
-            ui.gridY -= 1;
+        if (gridY >= 2) {
+            gridY -= 1;
         }
         refreshGridDisplay();
     };
@@ -314,10 +310,10 @@ window.justree = window.justree || {};
         switch (generateState) {
             case GenerateEnum.GRID:
                 replacement = new RatioNode(1, selected.getRatio(), 0.0);
-                for (var y = 0; y < ui.gridY; ++y) {
+                for (var y = 0; y < gridY; ++y) {
                     var gridNodeY = new RatioNode(0, 1, 0.0);
                     replacement.addChild(gridNodeY);
-                        for (var x = 0; x < ui.gridX; ++x) {
+                        for (var x = 0; x < gridX; ++x) {
                         var gridNodeX = new RatioNode(1, 1, 0.0);
                         gridNodeY.addChild(gridNodeX);
                     }
@@ -605,9 +601,9 @@ window.justree = window.justree || {};
 	/* init */
 	var callbackDomReady = function () {
         // init
-        init();
-        server.init();
-		audio.init();
+        shared.init();
+        clock.init();
+        osc.init();
 		video.init('justree-ui');
 		
 		// generate tree
@@ -701,8 +697,8 @@ window.justree = window.justree || {};
         $('button#redo').on('click', callbackRedoClick);
 
         // generator callbacks
-        ui.gridX = 2;
-        ui.gridY = 2;
+        gridX = 2;
+        gridY = 2;
         refreshGridDisplay();
         $('button#x-inc').on('click', callbackGridXIncrement);
         $('button#x-dec').on('click', callbackGridXDecrement);
@@ -737,12 +733,10 @@ window.justree = window.justree || {};
         $('#playback #play').on('click', callbackPlayClick);
         $('#playback #loop').on('click', callbackLoopClick);
         $('#playback #stop').on('click', callbackStopClick);
-        hookParamToSlider(audio.gainParam, '#playback #gain');
-        hookParamToSlider(audio.timeLenParam, '#synthesis #time-len');
-        hookParamToSlider(audio.freqMinParam, '#synthesis #freq-min');
-        hookParamToSlider(audio.freqMaxRatParam, '#synthesis #freq-max-rat');
-        $('#effects input[name=reverb]').on('change', callbackReverbToggle);
-        callbackReverbToggle();
+        hookParamToSlider(config.gainParam, '#playback #gain');
+        hookParamToSlider(config.timeLenParam, '#synthesis #time-len');
+        hookParamToSlider(config.freqMinParam, '#synthesis #freq-min');
+        hookParamToSlider(config.freqMaxRatParam, '#synthesis #freq-max-rat');
 
         // share load
         $('#upload button').on('click', callbackShareUpload);

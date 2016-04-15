@@ -1,6 +1,6 @@
 window.justree = window.justree || {};
 
-(function (justree, WebSocketPort) {
+(function (WebSocketPort, justree) {
     var config = justree.config;
     var clock = justree.clock;
 
@@ -207,4 +207,4 @@ window.justree = window.justree || {};
             });
         }
     };
-})(window.justree, osc.WebSocketPort);
+})(osc.WebSocketPort, window.justree);

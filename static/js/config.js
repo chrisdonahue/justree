@@ -1,9 +1,9 @@
 window.justree = window.justree || {};
 
-(function (justree) {	
+(function (Fingerprint, justree) {	
 	var config = justree.config = {};
 
-    config.clientFingerprint = new fingerprint().get();
+    config.clientFingerprint = new Fingerprint().get();
 
     // tree params
     config.breadthMax = 3;
@@ -74,4 +74,4 @@ window.justree = window.justree || {};
             throw msg;
         }
     };
-})(window.justree);
+})(window.Fingerprint, window.justree);
