@@ -47,9 +47,11 @@ window.justree = window.justree || {};
         canvasDom = canvasDomElement;
         canvasDomCtx = canvasDom.getContext('2d');
 	};
-	video.callbackCanvasResize = function () {
-        canvasWidth = canvasDom.width;
-        canvasHeight = canvasDom.height;
+	video.canvasResize = function (canvasWidthNew, canvasHeightNew) {
+        canvasWidth = canvasWidthNew;
+        canvasHeight = canvasHeightNew;
+        canvasDom.width = canvasWidth;
+        canvasDom.height = canvasHeight;
         canvasBuffer.width = canvasWidth;
         canvasBuffer.height = canvasHeight;
         video.repaintBuffer();

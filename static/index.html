@@ -18,79 +18,210 @@
 
 <body>
 	<ul class="nav nav-tabs" role="tablist">
-		<li role="presentation" class="active"><a data-toggle="tab" href="#tab1">Play</a></li>
-		<li role="presentation"><a data-toggle="tab" href="#tab2">Edit</a></li>
+		<li role="presentation"><a data-toggle="tab" href="#tab1">Play</a></li>
+		<li role="presentation" class="active"><a data-toggle="tab" href="#tab2">Edit</a></li>
 		<li role="presentation"><a data-toggle="tab" href="#tab3">Share</a></li>
 	</ul>
 
-	<div class="tab-content">
-		<div id="tab1" class="tab-pane fade in active">
-			<div id="playback">
-				<button id="play">Play</button>
-				<button id="loop">Loop</button>
-				<button id="stop">Stop</button>
-			</div>
-			<div id="synthesis">
-				<div class="hide-for-web-audio">
-					<p>Block Size</p><input type="range" id="block-size"></input>
+	<div class="tab-content" id="control">
+		<div id="tab1" class="tab-pane fade">
+			<div class="container-fluid">
+				<div class="row" id="playback">
+					<div class="col-xs-4">
+						<button type="button" class="btn btn-success" id="play">Play</button>
+					</div>
+					<div class="col-xs-4">
+						<button type="button" class="btn btn-info" id="loop">Loop</button>
+					</div>
+					<div class="col-xs-4">
+						<button type="button" class="btn btn-danger" id="stop">Stop</button>
+					</div>
 				</div>
-				<p>Volume</p><input type="range" id="gain"></input>
-				<p>Length</p><input type="range" id="time-len"></input>
-				<p>Freq min</p><input type="range" id="freq-min"></input>
-				<p>Freq multiplier</p><input type="range" id="freq-max-rat"></input>
-				<p>Attack</p><input type="range" id="env-atk-ms"></input>
-				<p>Decay</p><input type="range" id="env-dcy-ms"></input>
+				<div class="row hide-for-web-audio">
+					<div class="col-xs-4">
+						<h2>Block Size</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="block-size"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Volume</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="gain"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Length</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="time-len"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Freq Min</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="freq-min"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Freq Rat</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="freq-max-rat"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Env Atk</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="env-atk-ms"></input>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-4">
+						<h2>Env Decay</h2>
+					</div>
+					<div class="col-xs-8">
+						<input type="range" id="env-dcy-ms"></input>
+					</div>
+				</div>
 			</div>
 		</div>
-		<div id="tab2" class="tab-pane fade">
-			<div id="nav">
-				<p>Selection</p>
-				<button id="root">Root</button>
-				<button id="parent">Parent</button>
-				<button id="child">Child</button>
-				<button id="sibling">Sibling</button>
-				<button id="leaf">Leaf</button>
-				<!--<button id="zoom" disabled>Zoom</button>-->
+		<div id="tab2" class="tab-pane fade in active">
+			<div class="container-fluid">
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Navigation</h2>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-primary" id="root">Root</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-primary" id="parent">Parent</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-primary" id="child">Child</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-primary" id="sibling">Sibling</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-primary" id="leaf">Leaf</button>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Selection</h2>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-info" id="undo">Undo</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-info" id="redo">Redo</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-secondary" id="cut">Cut</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-secondary" id="copy">Copy</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-secondary" id="paste">Paste</button>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Editing</h2>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-warning" id="clear">Clear</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-danger" id="delete">Delete</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="flip">Flip</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="ratio-dec">Ratio-</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="ratio-inc">Ratio+</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="move-l">Move-</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="move-r">Move+</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="split-t">Split X</button>
+					</div>
+					<div class="col-xs-1">
+						<button type="button" class="btn btn-primary" id="split-f">Split Y</button>
+					</div>			
+				</div>
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Grid</h2>
+					</div>
+					<div class="col-xs-2">
+						<h3 id="x-disp"></h3>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-info" id="x-dec">-</button><button type="button" class="btn btn-info" id="x-inc">+</button>
+					</div>
+					<div class="col-xs-2">
+						<h3 id="y-disp"></h3>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-info" id="y-dec">-</button><button type="button" class="btn btn-info" id="y-inc">+</button>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-success" id="generate-grid">Generate</button>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Mutate</h2>
+					</div>
+					<div class="col-xs-1">
+						<h3>Depth</h3>
+					</div>
+					<div class="col-xs-3">
+						<input type="range" id="depth-max"></input>
+					</div>
+					<div class="col-xs-1">
+						<h3>Breadth</h3>
+					</div>
+					<div class="col-xs-3">
+						<input type="range" id="breadth-max"></input>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-success" id="mutate">Mutate</button>
+					</div>
+				</div>
 			</div>
-			<div id="oops">
-				<p>Oops</p>
-				<button id="undo">Undo</button>
-				<button id="redo">Redo</button>
-			</div>
+			<!--
 			<div id="presets">
 				<p>Presets</p>
 				<button id="grid">Grid</button>
 				<button id="grow">Mutate</button>
 				<div id="grid" hidden>
-					<p>Grid</p>
-					<p>X:</p><p id="x-disp"></p><button id="x-dec">-</button><button id="x-inc">+</button>
-					<p>Y:</p><p id="y-disp"></p><button id="y-dec">-</button><button id="y-inc">+</button>
 				</div>
 				<div id="mutate">
-					<p>Mutate</p>
-					<p>Max depth:</p><input type="range" id="depth-max"></input>
-					<p>Max breadth:</p><input type="range" id="breadth-max"></input>
 				</div>
 				<button id="generate">Generate</button>
 			</div>
-			<div id="edit">
-				<p>Edit</p>
-				<button id="clear">Clear</button>
-				<button id="delete">Delete</button>
-				<button id="ratio-dec">Ratio-</button>
-				<button id="ratio-inc">Ratio+</button>
-				<button id="move-l">Move-</button>
-				<button id="move-r">Move+</button>
-				<button id="flip">Flip</button>
-				<button id="split-t">TSplit</button>
-				<button id="split-f">FSplit</button>
-			</div>
-			<div id="store">
-				<p>Clipboard</p>
-				<button id="cut">Cut</button>
-				<button id="copy">Copy</button>
-				<button id="paste">Paste</button>
-			</div>
+			-->
 		</div>
 		<div id="tab3" class="tab-pane fade">
 			<div id="upload">

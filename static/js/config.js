@@ -45,13 +45,13 @@ window.justree = window.justree || {};
         'min': 0.0,
         'max': 1.0,
         'step': 0.01,
-        'valInit': 0.5
+        'valInit': 0.25
     };
     config.timeLenParam = {
         'min': 0.0,
         'max': 1.0,
         'step': 0.01,
-        'valInit': 0.5
+        'valInit': 0.25
     };
     config.freqMinParam = {
         'min': 20.0,

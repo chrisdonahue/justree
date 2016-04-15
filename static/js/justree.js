@@ -279,8 +279,8 @@ window.justree = window.justree || {};
     };
 
     var refreshGridDisplay = function () {
-        $('#x-disp').html(gridX);
-        $('#y-disp').html(gridY);
+        $('#x-disp').html('X: ' + String(gridX));
+        $('#y-disp').html('Y: ' + String(gridY));
     };
     var gridX = 2;
     var gridY = 2;
@@ -595,6 +595,16 @@ window.justree = window.justree || {};
         });
     };
 
+    var callbackWindowResize = function () {
+        var windowWidth = $(window).width();        
+        var windowHeight = $(window).height();
+        var $control = $('#control');
+        var controlBottomY = $control.offset().top + $control.height();
+        var canvasWidth = windowWidth;
+        var canvasHeight = windowHeight - controlBottomY;
+        video.canvasResize(canvasWidth, canvasHeight);
+    };
+
 	/* init */
 	var callbackDomReady = function () {
         // init
@@ -695,13 +705,13 @@ window.justree = window.justree || {};
         $('#playback #play').on('click', callbackPlayClick);
         $('#playback #loop').on('click', callbackLoopClick);
         $('#playback #stop').on('click', callbackStopClick);
-        hookParamToSlider(config.blockSizePow2, '#synthesis #block-size');
-        hookParamToSlider(config.gainParam, '#synthesis #gain');
-        hookParamToSlider(config.timeLenParam, '#synthesis #time-len');
-        hookParamToSlider(config.freqMinParam, '#synthesis #freq-min');
-        hookParamToSlider(config.freqMaxRatParam, '#synthesis #freq-max-rat');
-        hookParamToSlider(config.envAtkParam, '#synthesis #env-atk-ms');
-        hookParamToSlider(config.envDcyParam, '#synthesis #env-dcy-ms');
+        hookParamToSlider(config.blockSizePow2, '#block-size');
+        hookParamToSlider(config.gainParam, '#gain');
+        hookParamToSlider(config.timeLenParam, '#time-len');
+        hookParamToSlider(config.freqMinParam, '#freq-min');
+        hookParamToSlider(config.freqMaxRatParam, '#freq-max-rat');
+        hookParamToSlider(config.envAtkParam, '#env-atk-ms');
+        hookParamToSlider(config.envDcyParam, '#env-dcy-ms');
 
         // share load
         $('#upload button').on('click', callbackShareUpload);
@@ -724,8 +734,8 @@ window.justree = window.justree || {};
         }
 
         // viewport resize callback
-		$(window).resize(video.callbackCanvasResize);
-        video.callbackCanvasResize();
+		$(window).on('resize', callbackWindowResize);
+        $(window).trigger('resize');
 
         // request animation
         window.requestAnimationFrame(video.animate);
