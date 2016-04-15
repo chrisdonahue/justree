@@ -3,6 +3,8 @@ window.justree = window.justree || {};
 (function (justree) {	
 	var config = justree.config = {};
 
+    config.clientFingerprint = new fingerprint().get();
+
     // tree params
     config.breadthMax = 3;
     config.depthMin = 2;
@@ -11,27 +13,8 @@ window.justree = window.justree || {};
     config.pTerm = 0.5;
     config.pOn = 0.0;
     config.ratios = [1, 2, 3];
-    config.ratiosTime = []; // TODO
-    config.ratiosFreq = [];
-    config.ratiosLen = config.ratios.length;
-    config.undoStackSize = 8;
-    config.growDepthMaxParam = {
-        'min': 1,
-        'max': 6,
-        'step': 1,
-        'valInit': 4
-    };
-    config.growBreadthMaxParam = {
-        'min': 2,
-        'max': 6,
-        'step': 1,
-        'valInit': 2
-    };
-    config.growDepthMin = 1;
-    config.growDepthMax = 
 
-    // audio params
-    config.blockSize = 1024;
+    // hear params
     config.gainParam = {
         'min': 0.0,
         'max': 1.0,
@@ -39,10 +22,10 @@ window.justree = window.justree || {};
         'valInit': 0.5
     };
     config.timeLenParam = {
-        'min': 1.0,
-        'max': 10.0,
-        'step': 0.1,
-        'valInit': 2.0
+        'min': 0.0,
+        'max': 1.0,
+        'step': 0.01,
+        'valInit': 0.5
     };
     config.freqMinParam = {
         'min': 20.0,
@@ -56,21 +39,31 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
-    config.reverbOn = false;
+    config.timeoutMockFs = 44100.0;
+    config.timeoutRateParam = {
+        'min': 1,
+        'max': 10,
+        'step': 1,
+        'valInit': 6
+    };
 
-    // synth params
-    config.synthTabLen = 4096;
-    config.synthVoicesNum = 8;
-    config.synthAtk = 0.05;
-    config.synthRel = 0.25;
+    // edit params
+    config.growDepthMaxParam = {
+        'min': 1,
+        'max': 6,
+        'step': 1,
+        'valInit': 4
+    };
+    config.growBreadthMaxParam = {
+        'min': 2,
+        'max': 6,
+        'step': 1,
+        'valInit': 2
+    };
 
-    // fx params
-    config.reverbLen = 1.5;
-    config.reverbDcy = 10.0;
-
-    // share params
-    config.synthIp = 'localhost';
-    config.synthPort = 1234;
+    // network params
+    config.oscServerIp = 'localhost';
+    config.oscServerPort = 1234;
     config.shareRoute = '/justrees'
     
     // debug

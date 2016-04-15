@@ -12,7 +12,7 @@ var fs = require('fs');
 // config
 var treesDirPath = './justrees/';
 var fileEncoding = 'utf8';
-var serverPort = 80;
+var serverPort = 3000;
 
 // scan directory
 var justrees = [];

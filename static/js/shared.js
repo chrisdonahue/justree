@@ -3,97 +3,9 @@ window.justree = window.justree || {};
 (function (justree) {
 	var shared = justree.shared = {};
 
-    var PlayheadStateEnum = shared.PlayheadStateEnum = {
-        'STOPPED': 0,
-        'PLAYING': 1,
-        'LOOPING': 2
-    };
-    var ModalEnum = shared.ModalEnum = {
-        'HEAR': 0,
-        'EDIT': 1,
-        'SHARE': 2,
-        'SERVER': 3
-    };
     shared.init = function () {
-        shared.playheadState = PlayheadStateEnum.STOPPED;
-        shared.playheadPosRel = 0.0;
-        shared.nodeClipboard = null;
         shared.nodeRoot = null;
-        shared.nodeSelected = null;
         shared.leafCellsSorted = [];
-        shared.undoStack = [];
-        shared.undoStackIdx = 0;
-        shared.modalState = ModalEnum.EDIT;
-    };
-    shared.clearNodeClipboard = function () {
-        shared.nodeClipboard = null;
-    };
-    shared.pushNodeClipboard = function (node) {
-        shared.nodeClipboard = node;
-    };
-    shared.peekNodeClipboard = function () {
-        return shared.nodeClipboard;
-    };
-    shared.undoDebugPrint = function () {
-        console.log('-------');
-        for (var i = 0; i < shared.undoStack.length; ++i) {
-            var str = String(i);
-            if (i === shared.undoStackIdx) {
-                str += '->';
-            }
-            else {
-                str += '  ';
-            }
-            var node = shared.undoStack[i];
-            if (node === null) {
-                str += 'null';
-            }
-            else {
-                str += node.toString();
-            }
-            console.log(str);
-        }
-    };
-    shared.undoStackPushChange = function (node) {
-        // if we've branched, delete everything 
-        while (shared.undoStackIdx < shared.undoStack.length) {
-            shared.undoStack.pop();
-        }
-        if (shared.undoStack.length < shared.undoStackIdx) {
-            shared.undoStack.push(node);
-        }
-        else {
-            shared.undoStack[shared.undoStackIdx] = node;
-        }
-        shared.undoStackIdx += 1;
-    };
-    shared.undoStackUndo = function (node) {
-        if (shared.undoStackIdx === 0) {
-            return null;
-        }
-        if (shared.undoStackIdx === shared.undoStack.length) {
-            shared.undoStack.push(node);
-        }
-        var result = shared.undoStack[shared.undoStackIdx - 1];
-        shared.undoStackIdx -= 1;
-        return result;
-    };
-    shared.undoStackRedo = function () {
-        if (shared.undoStackIdx + 1 < shared.undoStack.length) {
-            var result = shared.undoStack[shared.undoStackIdx + 1];
-            shared.undoStackIdx += 1;
-            return result;
-        }
-        return null;
-    };
-    shared.getNodeSelected = function () {
-        return shared.nodeSelected;
-    };
-    shared.setNodeSelected = function(nodeSelected) {
-        shared.nodeSelected = nodeSelected;
-    };
-    shared.clearNodeSelected = function () {
-        shared.nodeSelected = null;
     };
     shared.getNodeRoot = function () {
         return shared.nodeRoot;
@@ -175,7 +87,7 @@ window.justree = window.justree || {};
             $('#string').html('null');
         }
     };
-    shared.getLeafCellsSorted = function () {
+    shared.getNodeRootLeafCellsSorted = function () {
         return shared.leafCellsSorted;
     };
 })(window.justree);
