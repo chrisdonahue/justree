@@ -13,8 +13,8 @@ window.justree = window.justree || {};
     shared.getNodeRoot = function () {
         return nodeRoot;
     };
-    shared.setNodeRoot = function(nodeRoot) {
-        nodeRoot = nodeRoot;
+    shared.setNodeRoot = function(nodeRootNew) {
+        nodeRoot = nodeRootNew;
         leafCellsSorted = [];
     };
     shared.parseNodeRoot = function (node, depth, x, y, width, height) {
@@ -96,8 +96,8 @@ window.justree = window.justree || {};
     shared.getNodeSelected = function () {
         return nodeSelected;
     };
-    shared.setNodeSelected = function(nodeSelected) {
-        nodeSelected = nodeSelected;
+    shared.setNodeSelected = function(nodeSelectedNew) {
+        nodeSelected = nodeSelectedNew;
     };
     shared.clearNodeSelected = function () {
         nodeSelected = null;

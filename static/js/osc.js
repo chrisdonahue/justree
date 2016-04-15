@@ -15,6 +15,7 @@ window.justree = window.justree || {};
     var connected = false;
     var socketOsc = null;
     var clockCallback = function (clockPosRelStart, clockPosRelDelta) {
+        /*
         var sampleRate = osc.sampleRate;
         var sampleRateInverse = osc.sampleRateInverse;
 
@@ -148,7 +149,7 @@ window.justree = window.justree || {};
         }
 
         // stop or loop
-
+        */
     };
     var callbackServerOpen = function (event) {
         console.log('socket open');

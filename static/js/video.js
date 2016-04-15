@@ -3,6 +3,7 @@ window.justree = window.justree || {};
 (function (justree) {
     var config = justree.config;
 	var shared = justree.shared;
+    var clock = justree.clock;
 
 	var video = justree.video = {};
     var OrientationEnum = video.OrientationEnum = {
@@ -49,6 +50,7 @@ window.justree = window.justree || {};
 		video.canvasWidth = -1;
 		video.canvasHeight = -1;
         video.zoomCell = null;
+        //clock.registerCallback(video.repaint);
 	};
 	video.callbackWindowResize = function () {
 		var viewportWidth = $(window).width();
@@ -58,14 +60,15 @@ window.justree = window.justree || {};
 			video.viewportWidth = viewportHeight;
 			video.canvasWidth = video.canvas.width;
 			video.canvasHeight = video.canvas.height;
-			video.repaint(video.canvasCtx, video.root, 0, 0, video.canvasWidth, video.canvasHeight);
+			video.repaint();
 		}
 	};
     video.posAbsToLeafNode = function (x, y) {
         var width = video.canvasWidth;
         var height = video.canvasHeight;
-        for (var i = 0; i < shared.leafCellsSorted.length; ++i) {
-            var cell = shared.leafCellsSorted[i];
+        var leafCellsSorted = shared.getNodeRootLeafCellsSorted();
+        for (var i = 0; i < leafCellsSorted.length; ++i) {
+            var cell = leafCellsSorted[i];
             var cellX = cell.x * width;
             var cellY = cell.y * height;
             var cellWidth = cell.width * width;
@@ -146,11 +149,14 @@ window.justree = window.justree || {};
         }
 
         // draw playback line
-        ctx.strokeStyle = 'rgb(255, 0, 0)';
-        ctx.beginPath();
-        var playheadX = relBbToAbsBb({'x': shared.playheadPosRel}).x;
-        ctx.moveTo(playheadX, 0);
-        ctx.lineTo(playheadX, canvasHeight);
-        ctx.stroke();
+        var clockPosRel = clock.getPosRel();
+        if (clockPosRel >= 0.0) {
+            ctx.strokeStyle = 'rgb(255, 0, 0)';
+            ctx.beginPath();
+            var playheadX = relBbToAbsBb({'x': clockPosRel}).x;
+            ctx.moveTo(playheadX, 0);
+            ctx.lineTo(playheadX, canvasHeight);
+            ctx.stroke();
+        }
 	};
 })(window.justree);

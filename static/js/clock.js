@@ -3,7 +3,7 @@ window.justree = window.justree || {};
 (function (justree) {
     var config = justree.config;
 
-    var timeoutRateParam = config.timeoutRateParam;
+    var blockSizePow2 = config.blockSizePow2;
     var timeLenParam = config.timeLenParam;
     var timeoutMockFs = config.timeoutMockFs;
     var timeoutMockFsInv = 1.0 / timeoutMockFs;
@@ -14,25 +14,43 @@ window.justree = window.justree || {};
         'LOOPING': 2
     };
     var state = ClockStateEnum.STOPPED;
-    var posRel = 0.0;
-    var callbacks = []
+    var posRel = -1.0;
+    var callbacks = [];
+
+    var webAudioSupported = config.allowWebAudioApi && window.supportsWebAudio;
+    var webAudioCtx = null;
+    var webAudioFs = -1.0;
+    var webAudioBlockSize = -1;
+    var webAudioPosAbsDelta = -1.0;
 
 	var clockCallback = function () {
-		if (state === ClockStateEnum.STOPPED) {
-			return;
-		}
+        // skip if clock is off
+        if (state === ClockStateEnum.STOPPED) {
+            return;
+        }
 
-		var posAbsDelta = Math.pow(2, timeoutRateParam.val) * timeoutMockFsInv;
-		var posRelDelta = posAbsDelta / timeLenParam.val;
+        // calculate t and dt
+        var posAbsDelta, posRelDelta;
+        if (webAudioSupported) {
+            var posAbsDelta = webAudioPosAbsDelta;
+            var posRelDelta = posAbsDelta / timeLenParam.val;
+        }
+        else {
+            var posAbsDelta = Math.pow(2, blockSizePow2.val) * timeoutMockFsInv;
+            var posRelDelta = posAbsDelta / timeLenParam.val;
+        }
 
+        // call clocked callbacks
 		for (var i = 0; i < callbacks.length; ++i) {
 			callbacks[i](posRel, posRelDelta);
 		}
 
+        // increment timer
+        posRel += posRelDelta;
         if (state === ClockStateEnum.PLAYING) {
             if (posRel >= 1.0) {
                 state = ClockStateEnum.STOPPED;
-                posRel = 0.0;
+                posRel = -1.0;
             }
         }
         else if (state === ClockStateEnum.LOOPING) {
@@ -41,19 +59,34 @@ window.justree = window.justree || {};
             }
         }
 
-        setTimeout(clockCallback, posAbsDelta * 1000.0);
+        // set timeout for mock
+        if (!webAudioSupported) {
+            setTimeout(clockCallback, posAbsDelta * 1000.0);
+        }
 	};
 
 	var clock = justree.clock = {};
-	clock.init = function () {};
+	clock.init = function () {
+        if (webAudioSupported) {
+            webAudioCtx = new window.AudioContext();
+            webAudioFs = webAudioCtx.sampleRate;
+            webAudioBlockSize = Math.pow(2, blockSizePow2.valInit);
+            webAudioPosAbsDelta = webAudioBlockSize / webAudioFs;
+            var webAudioScriptNode = webAudioCtx.createScriptProcessor(webAudioBlockSize, 0, 1);
+            webAudioScriptNode.onaudioprocess = clockCallback;
+            webAudioScriptNode.connect(webAudioCtx.destination);
+        }
+    };
 	clock.start = function () {
         state = ClockStateEnum.PLAYING;
         posRel = 0.0;
-        clockCallback();
+        if (!webAudioSupported) {
+            clockCallback();
+        }
 	};
 	clock.stop = function () {
         state = ClockStateEnum.STOPPED;
-        posRel = 0.0;
+        posRel = -1.0;
 	};
 	clock.loop = function () {
 		if (state === ClockStateEnum.STOPPED) {
@@ -61,7 +94,13 @@ window.justree = window.justree || {};
 		}
         state = ClockStateEnum.LOOPING;
 	};
+    clock.getPosRel = function () {
+        return posRel;
+    };
 	clock.registerCallback = function (callback) {
 		callbacks.push(callback);
 	};
+    clock.usingWebAudio = function () {
+        return webAudioSupported;
+    };
 })(window.justree);

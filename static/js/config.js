@@ -5,14 +5,18 @@ window.justree = window.justree || {};
 
     config.clientFingerprint = new Fingerprint().get();
 
+    // initial tree params
+    config.initBreadthMax = 3;
+    config.initDepthMin = 2;
+    config.initDepthMax = 5;
+
     // tree params
-    config.breadthMax = 3;
-    config.growDepthMin = 2;
-    config.growDepthMax = 5;
     config.nDims = 2;
     config.pTerm = 0.5;
     config.pOn = 0.0;
     config.ratios = [1, 2, 3];
+
+    // mutate tree params
     config.growDepthMaxParam = {
         'min': 1,
         'max': 6,
@@ -26,7 +30,17 @@ window.justree = window.justree || {};
         'valInit': 2
     };
 
-    // hear params
+    // message params
+    config.allowWebAudioApi = true;
+    config.timeoutMockFs = 44100.0;
+    config.blockSizePow2 = {
+        'min': 1,
+        'max': 12,
+        'step': 1,
+        'valInit': 10
+    };
+
+    // playback params
     config.gainParam = {
         'min': 0.0,
         'max': 1.0,
@@ -51,13 +65,6 @@ window.justree = window.justree || {};
         'step': 1.0,
         'valInit': 2.0
     };
-    config.timeoutMockFs = 44100.0;
-    config.timeoutRateParam = {
-        'min': 1,
-        'max': 10,
-        'step': 1,
-        'valInit': 6
-    };
     config.envAtkParam = {
         'min': 0.0,
         'max': 100.0,
@@ -69,20 +76,6 @@ window.justree = window.justree || {};
         'max': 1000.0,
         'step': 100.0,
         'valInit': 50.0
-    };
-
-    // edit params
-    config.growDepthMaxParam = {
-        'min': 1,
-        'max': 6,
-        'step': 1,
-        'valInit': 4
-    };
-    config.growBreadthMaxParam = {
-        'min': 2,
-        'max': 6,
-        'step': 1,
-        'valInit': 2
     };
 
     // network params

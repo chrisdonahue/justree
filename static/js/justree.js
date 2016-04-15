@@ -2,12 +2,8 @@ window.justree = window.justree || {};
 
 (function ($, _, justree) {
 	/* require */
-	if (!window.supportsWebAudio) {
-		alert('Sorry, HTML5 Web Audio API not supported on this browser.');
-		throw 'HTML5 Web Audio API not supported on this browser';
-	}
 	if (!window.supportsCanvas) {
-		alert('Sorry, HTML5 Canvas not supported on this browser.');
+		alert('Sorry, graphics cannot be displayed on this browser.');
 		throw 'HTML5 Canvas not supported on this browser';
 	}
 
@@ -111,15 +107,13 @@ window.justree = window.justree || {};
 
     /* callbacks */
 	var callbackPlayClick = function () {
-        playheadState = PlayheadStateEnum.PLAYING;
-        playheadPosRel = 0.0;
+        clock.start();
 	};
     var callbackLoopClick = function () {
-        playheadState = PlayheadStateEnum.LOOPING;
+        clock.loop();
     };
     var callbackStopClick = function () {
-        playheadState = PlayheadStateEnum.STOPPED;
-        playheadPosRel = 0.0;
+        clock.stop();
     };
     var hookParamToSlider = function (param, sliderSelector) {
         var $slider = $(sliderSelector);
@@ -606,14 +600,11 @@ window.justree = window.justree || {};
         // init
         shared.init();
         clock.init();
+        video.init('justree-ui');
         osc.init();
-		video.init('justree-ui');
-
-        // connect
-        server.connect(config.synthIp, config.synthPort);
 		
 		// generate tree
-		var root = tree.treeGrow(0, config.depthMin, config.depthMax, config.breadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
+		var root = tree.treeGrow(0, config.initDepthMin, config.initDepthMax, config.initBreadthMax, config.pTerm, config.nDims, config.ratios, config.pOn);
 		setNodeRoot(root);
         rescanNodeRootSubtree();
 
@@ -669,17 +660,6 @@ window.justree = window.justree || {};
             $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
         }
 
-        // server callbacks
-        $('button#connect').on('click', function () {
-            server.connect($('#server #ip').val(), $('#server #port').val());
-        });
-        $('button#disconnect').on('click', server.disconnect)
-        $('button#osc-send').on('click', function () {
-            var oscAddress = $('#server #osc-address').val();
-            var oscParameters = JSON.parse($('#server #osc-params').val());
-            server.sendOsc(oscAddress, oscParameters);
-        });
-
         // selection callbacks
         $('button#parent').on('click', callbackParentClick);
         $('button#sibling').on('click', callbackSiblingClick);
@@ -693,8 +673,6 @@ window.justree = window.justree || {};
         $('button#redo').on('click', callbackRedoClick);
 
         // generator callbacks
-        gridX = 2;
-        gridY = 2;
         refreshGridDisplay();
         $('button#x-inc').on('click', callbackGridXIncrement);
         $('button#x-dec').on('click', callbackGridXDecrement);
@@ -726,15 +704,19 @@ window.justree = window.justree || {};
 
         // audio callbacks
 		//$('body').css({'overflow': 'hidden'});
+        if (clock.usingWebAudio()) {
+            $('.hide-for-web-audio').hide();
+        }
         $('#playback #play').on('click', callbackPlayClick);
         $('#playback #loop').on('click', callbackLoopClick);
         $('#playback #stop').on('click', callbackStopClick);
-        hookParamToSlider(config.gainParam, '#playback #gain');
+        hookParamToSlider(config.blockSizePow2, '#synthesis #block-size');
+        hookParamToSlider(config.gainParam, '#synthesis #gain');
         hookParamToSlider(config.timeLenParam, '#synthesis #time-len');
         hookParamToSlider(config.freqMinParam, '#synthesis #freq-min');
         hookParamToSlider(config.freqMaxRatParam, '#synthesis #freq-max-rat');
-        hookParamToSlider(audio.envAtkParam, '#synthesis #env-atk-ms');
-        hookParamToSlider(audio.envDcyParam, '#synthesis #env-dcy-ms');
+        hookParamToSlider(config.envAtkParam, '#synthesis #env-atk-ms');
+        hookParamToSlider(config.envDcyParam, '#synthesis #env-dcy-ms');
 
         // share load
         $('#upload button').on('click', callbackShareUpload);
@@ -744,8 +726,8 @@ window.justree = window.justree || {};
 		$(window).resize(video.callbackWindowResize);
         video.callbackWindowResize();
 
-        // start animation
-		window.requestAnimationFrame(video.animate);
+        // request animation
+        window.requestAnimationFrame(video.animate);
 	};
 	$(document).ready(callbackDomReady);
 
