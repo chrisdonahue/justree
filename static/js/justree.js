@@ -21,7 +21,9 @@ window.justree = window.justree || {};
     var RatioNode = tree.RatioNode;
     var growDepthMaxParam = config.growDepthMaxParam;
     var growBreadthMaxParam = config.growBreadthMaxParam;
+    var getNodeRoot = shared.getNodeRoot;
     var setNodeRoot = shared.setNodeRoot;
+    var getNodeRootLeafCellsSorted = shared.getNodeRootLeafCellsSorted;
     var rescanNodeRootSubtree = shared.rescanNodeRootSubtree;
     var getNodeSelected = shared.getNodeSelected;
     var setNodeSelected = shared.setNodeSelected;
@@ -216,7 +218,7 @@ window.justree = window.justree || {};
     var callbackLeafClick = function () { 
         var nodeSelected = getNodeSelected();
         if (nodeSelected === null) {
-            var leafCellsSorted = getLeafCellsSorted();
+            var leafCellsSorted = getNodeRootLeafCellsSorted();
             var leafCellRandom = leafCellsSorted[Math.floor(Math.random() * leafCellsSorted.length)];
             setNodeSelected(leafCellRandom.node);
             navChildStack = [];
@@ -589,7 +591,7 @@ window.justree = window.justree || {};
 		setNodeRoot(root);
         rescanNodeRootSubtree();
 
-        // modal callbacks
+        // tab callbacks
         $('button#hear').on('click', function () {
             modalState = ModalEnum.HEAR;
             $('div#edit').hide();
@@ -614,32 +616,6 @@ window.justree = window.justree || {};
             navChildStack = [];
             video.repaintDom();
         });
-        $('button#grid').on('click', function () {
-            generateState = GenerateEnum.GRID;
-            $('div#grid').show();
-            $('div#mutate').hide();
-        });
-        $('button#grow').on('click', function () {
-            generateState = GenerateEnum.GROW;
-            $('div#mutate').show();
-            $('div#grid').hide();
-        });
-
-        // canvas mouse/touch events
-        if (window.supportsTouchEvents) {
-            $('#justree-ui').on('touchstart', callbackTouchStart);
-            $('#justree-ui').on('touchmove', callbackTouchMove);
-            $('#justree-ui').on('touchend', callbackTouchEnd);
-            $('#justree-ui').on('touchleave', callbackTouchLeave);
-            $('#justree-ui').on('touchcancel', callbackTouchCancel);
-        }
-        else {
-            var mouseToTouchEvent = window.mouseToTouchEvent;
-            $('#justree-ui').on('mousedown', mouseToTouchEvent(callbackTouchStart));
-            $('#justree-ui').on('mousemove', mouseToTouchEvent(callbackTouchMove));
-            $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
-            $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
-        }
 
         // selection callbacks
         $('button#parent').on('click', callbackParentClick);
@@ -654,6 +630,16 @@ window.justree = window.justree || {};
         $('button#redo').on('click', callbackRedoClick);
 
         // generator callbacks
+        $('button#grid').on('click', function () {
+            generateState = GenerateEnum.GRID;
+            $('div#grid').show();
+            $('div#mutate').hide();
+        });
+        $('button#grow').on('click', function () {
+            generateState = GenerateEnum.GROW;
+            $('div#mutate').show();
+            $('div#grid').hide();
+        });
         refreshGridDisplay();
         $('button#x-inc').on('click', callbackGridXIncrement);
         $('button#x-dec').on('click', callbackGridXDecrement);
@@ -702,6 +688,22 @@ window.justree = window.justree || {};
         // share load
         $('#upload button').on('click', callbackShareUpload);
         callbackShareUpdate();
+
+        // canvas mouse/touch events
+        if (window.supportsTouchEvents) {
+            $('#justree-ui').on('touchstart', callbackTouchStart);
+            $('#justree-ui').on('touchmove', callbackTouchMove);
+            $('#justree-ui').on('touchend', callbackTouchEnd);
+            $('#justree-ui').on('touchleave', callbackTouchLeave);
+            $('#justree-ui').on('touchcancel', callbackTouchCancel);
+        }
+        else {
+            var mouseToTouchEvent = window.mouseToTouchEvent;
+            $('#justree-ui').on('mousedown', mouseToTouchEvent(callbackTouchStart));
+            $('#justree-ui').on('mousemove', mouseToTouchEvent(callbackTouchMove));
+            $('#justree-ui').on('mouseup', mouseToTouchEvent(callbackTouchEnd));
+            $('#justree-ui').on('mouseleave', mouseToTouchEvent(callbackTouchLeave));
+        }
 
         // viewport resize callback
 		$(window).resize(video.callbackCanvasResize);
