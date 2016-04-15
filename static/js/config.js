@@ -81,7 +81,7 @@ window.justree = window.justree || {};
     // network params
     config.oscServerIp = 'localhost';
     config.oscServerPort = 1235;
-    config.oscNoteOnId = '/noteon';
+    config.oscNoteOnAddress = '/noteon';
     config.shareRoute = '/justrees'
     
     // debug

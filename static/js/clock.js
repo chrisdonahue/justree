@@ -40,6 +40,11 @@ window.justree = window.justree || {};
             var posRelDelta = posAbsDelta / timeLenParam.val;
         }
 
+        // clip dt if we're not looping
+        if (!(state === ClockStateEnum.LOOPING) && posRel + posRelDelta >= 1.0) {
+            posRelDelta = 1.0 - posRel;
+        }
+
         // call clocked callbacks
 		for (var i = 0; i < callbacks.length; ++i) {
 			callbacks[i](posRel, posRelDelta);

@@ -21,6 +21,7 @@ window.justree = window.justree || {};
     var clockCallback = function (clockPosRelStart, clockPosRelDelta) {
         var cells = shared.getNodeRootLeafCellsSorted();
         var clockPosRelEnd = clockPosRelStart + clockPosRelDelta;
+        var looping = clockPosRelEnd > 1.0;
 
         var cellsEmitting = [];
         for (var i = 0; i < cells.length; ++i) {
