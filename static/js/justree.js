@@ -598,10 +598,9 @@ window.justree = window.justree || {};
     var callbackWindowResize = function () {
         var windowWidth = $(window).width();        
         var windowHeight = $(window).height();
-        var $control = $('#control');
-        var controlBottomY = $control.offset().top + $control.height();
+        var $display = $('#display');
         var canvasWidth = windowWidth;
-        var canvasHeight = windowHeight - controlBottomY;
+        var canvasHeight = windowHeight - $display.offset().top;
         video.canvasResize(canvasWidth, canvasHeight);
     };
 
@@ -620,29 +619,22 @@ window.justree = window.justree || {};
         rescanNodeRootSubtree();
 
         // tab callbacks
-        $('button#hear').on('click', function () {
+        $('#hear').on('click', function () {
             modalState = ModalEnum.HEAR;
-            $('div#edit').hide();
-            $('div#share').hide();
-            $('div#hear').show();
             clearNodeSelected();
             navChildStack = [];
-            video.repaintDom();
+            $(window).trigger('resize');
         });
-        $('button#edit').on('click', function () {
+        $('#edit').on('click', function () {
             modalState = ModalEnum.EDIT;
-            $('div#hear').hide();
-            $('div#share').hide();
-            $('div#edit').show();
+            clock.stop();
+            $(window).trigger('resize');
         });
-        $('button#share').on('click', function () {
+        $('#share').on('click', function () {
             modalState = ModalEnum.SHARE;
-            $('div#hear').hide();
-            $('div#edit').hide();
-            $('div#share').show();
             clearNodeSelected();
             navChildStack = [];
-            video.repaintDom();
+            $(window).trigger('resize');
         });
 
         // selection callbacks

@@ -11,29 +11,29 @@
     <title>Just Tree</title>
 	
     <!--<link rel="stylesheet" href="css/lib/reset.css" type="text/css"/>-->
-    <link href="css/lib/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/lib/bootstrap.css" type="text/css">
 
 	<link rel="stylesheet" href="css/justree.css" type="text/css"/>
 </head>
 
 <body>
 	<ul class="nav nav-tabs" role="tablist">
-		<li role="presentation"><a data-toggle="tab" href="#tab1">Play</a></li>
-		<li role="presentation" class="active"><a data-toggle="tab" href="#tab2">Edit</a></li>
-		<li role="presentation"><a data-toggle="tab" href="#tab3">Share</a></li>
+		<li id="hear" role="presentation"><a data-toggle="tab" href="#tab1">Play</a></li>
+		<li id="edit" role="presentation" class="active"><a data-toggle="tab" href="#tab2">Edit</a></li>
+		<li id="share" role="presentation"><a data-toggle="tab" href="#tab3">Share</a></li>
 	</ul>
 
 	<div class="tab-content" id="control">
-		<div id="tab1" class="tab-pane fade">
+		<div id="tab1" class="tab-pane">
 			<div class="container-fluid">
 				<div class="row" id="playback">
-					<div class="col-xs-4">
+					<div class="col-xs-2">
 						<button type="button" class="btn btn-success" id="play">Play</button>
 					</div>
-					<div class="col-xs-4">
+					<div class="col-xs-2">
 						<button type="button" class="btn btn-info" id="loop">Loop</button>
 					</div>
-					<div class="col-xs-4">
+					<div class="col-xs-2">
 						<button type="button" class="btn btn-danger" id="stop">Stop</button>
 					</div>
 				</div>
@@ -95,7 +95,7 @@
 				</div>
 			</div>
 		</div>
-		<div id="tab2" class="tab-pane fade in active">
+		<div id="tab2" class="tab-pane in active">
 			<div class="container-fluid">
 				<div class="row">
 					<div class="col-xs-2">
@@ -223,24 +223,43 @@
 			</div>
 			-->
 		</div>
-		<div id="tab3" class="tab-pane fade">
-			<div id="upload">
-				<p>Author</p><input type="text" id="author"></input>
-				<p>Name</p><input type="text" id="name"></input><br>
-				<button>Submit</button>
-			</div>
-			<div>
-				<table id="shared">
-					<thead>
-						<tr>
-							<th>Author</th>
-							<th>Name</th>
-							<th>Load</th>
-						</tr>
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
+		<div id="tab3" class="tab-pane">
+			<div class="container-fluid">
+				<div class="row">
+					<div class="col-xs-2">
+						<h2>Upload</h2>
+					</div>
+					<div class="col-xs-1">
+						<h3>Author</h3>
+					</div>
+					<div class="col-xs-3">
+						<input type="text" id="author"></input>
+					</div>
+					<div class="col-xs-1">
+						<h3>Name</h3>
+					</div>
+					<div class="col-xs-3">
+						<input type="text" id="name"></input>
+					</div>
+					<div class="col-xs-2">
+						<button type="button" class="btn btn-success" id="upload">Submit</button>
+					</div>
+				</div>
+				<div class="row">
+					<div class="table-responsive">
+						<table class="table" id="shared">
+							<thead>
+								<tr>
+									<th>Author</th>
+									<th>Name</th>
+									<th>Load</th>
+								</tr>
+							</thead>
+							<tbody>
+							</tbody>
+						</table>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>

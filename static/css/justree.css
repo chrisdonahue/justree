@@ -1,7 +1,20 @@
+body {
+    overflow:hidden;
+}
+
 h2 {
 	font-size: 125%;
 }
 
 h3 {
 	font-size: 100%;
+}
+
+.nav-tabs a {
+   height: 42px;  
+}
+
+.tab-pane {
+	height: 238px;
+	overflow: hidden;
 }
