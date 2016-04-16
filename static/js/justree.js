@@ -509,6 +509,7 @@ window.justree = window.justree || {};
             }
 
             // update sliders
+            console.log(jsonShared);
             $('#gain').attr('value', jsonShared.velocity).trigger('input');
             $('#time-len').attr('value', jsonShared.timeLen).trigger('input');
             $('#freq-min').attr('value', jsonShared.freqMin).trigger('input');
@@ -534,8 +535,8 @@ window.justree = window.justree || {};
             'envAtkMs': config.envAtkParam.val,
             'envDcyMs': config.envDcyParam.val,
             'clientFingerprint': config.clientFingerprint,
-            'author': $('#upload #author').val(),
-            'name': $('#upload #name').val(),
+            'author': $('#author').val(),
+            'name': $('#name').val(),
             'justree': getNodeRoot().toString()
         };
         if (!confirm('Publish this tree to the server for everyone to see?')) {
@@ -570,7 +571,7 @@ window.justree = window.justree || {};
                     $tdauth.html(justree.author);
                     var $tdname = $('<td class="name"></td>');
                     $tdname.html(justree.name);
-                    var $tdload = $('<td class="load"><button>Load</button></td>');
+                    var $tdload = $('<td class="load"><button class="btn btn-primary">Load</button></td>');
                     $tdload.find('button').on('click', callbackShareLoadGenerator(i));
                     $tr.append($tdauth);
                     $tr.append($tdname);
@@ -688,7 +689,7 @@ window.justree = window.justree || {};
         hookParamToSlider(config.envDcyParam, '#env-dcy-ms');
 
         // share load
-        $('#upload button').on('click', callbackShareUpload);
+        $('#upload').on('click', callbackShareUpload);
         callbackShareUpdate();
 
         // canvas mouse/touch events
