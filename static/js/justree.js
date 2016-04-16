@@ -29,10 +29,6 @@ window.justree = window.justree || {};
     var setNodeSelected = shared.setNodeSelected;
     var clearNodeSelected = shared.clearNodeSelected;
 
-    var GenerateEnum = {
-        'GRID': 0,
-        'GROW': 1
-    };
     var ModalEnum = {
         'HEAR': 0,
         'EDIT': 1,
@@ -40,7 +36,6 @@ window.justree = window.justree || {};
         'SERVER': 3
     };
 
-    var generateState = GenerateEnum.GROW;
     var undoStack = [];
     var undoStackIdx = 0;
     var modalState = ModalEnum.EDIT;
@@ -275,6 +270,9 @@ window.justree = window.justree || {};
                     video.repaintFull();
                 }
             }
+            else {
+                alert('Select a node first.');
+            }
         }
     };
 
@@ -304,32 +302,25 @@ window.justree = window.justree || {};
         }
         refreshGridDisplay();
     };
-    var callbackGenerate = callbackEditSelectionDecorator(function (selected) {
-        var replacement = null;
-        switch (generateState) {
-            case GenerateEnum.GRID:
-                replacement = new RatioNode(1, selected.getRatio(), 0.0);
-                for (var y = 0; y < gridY; ++y) {
-                    var gridNodeY = new RatioNode(0, 1, 0.0);
-                    replacement.addChild(gridNodeY);
-                        for (var x = 0; x < gridX; ++x) {
-                        var gridNodeX = new RatioNode(1, 1, 0.0);
-                        gridNodeY.addChild(gridNodeX);
-                    }
-                }
-                break;
-            case GenerateEnum.GROW:
-                replacement = tree.treeGrow(0, 1, growDepthMaxParam.val, growBreadthMaxParam.val, config.pTerm, config.nDims, config.ratios, config.pOn);
-                replacement.setRatio(selected.getRatio());
-                break;
-            default:
-                break;
+    var callbackGenerateGrid = callbackEditSelectionDecorator(function (selected) {
+        replacement = new RatioNode(1, selected.getRatio(), 0.0);
+        for (var y = 0; y < gridY; ++y) {
+            var gridNodeY = new RatioNode(0, 1, 0.0);
+            replacement.addChild(gridNodeY);
+                for (var x = 0; x < gridX; ++x) {
+                var gridNodeX = new RatioNode(1, 1, 0.0);
+                gridNodeY.addChild(gridNodeX);
+            }
         }
-
-        if (replacement !== null) {
-            tree.replaceSubtree(selected, replacement);
-            setNodeSelected(replacement);
-        }
+        tree.replaceSubtree(selected, replacement);
+        setNodeSelected(replacement);
+        return replacement;
+    });
+    var callbackMutate = callbackEditSelectionDecorator(function (selected) {
+        replacement = tree.treeGrow(0, 1, growDepthMaxParam.val, growBreadthMaxParam.val, config.pTerm, config.nDims, config.ratios, config.pOn);
+        replacement.setRatio(selected.getRatio());
+        tree.replaceSubtree(selected, replacement);
+        setNodeSelected(replacement);
         return replacement;
     });
 
@@ -650,16 +641,6 @@ window.justree = window.justree || {};
         $('button#redo').on('click', callbackRedoClick);
 
         // generator callbacks
-        $('button#grid').on('click', function () {
-            generateState = GenerateEnum.GRID;
-            $('div#grid').show();
-            $('div#mutate').hide();
-        });
-        $('button#grow').on('click', function () {
-            generateState = GenerateEnum.GROW;
-            $('div#mutate').show();
-            $('div#grid').hide();
-        });
         refreshGridDisplay();
         $('button#x-inc').on('click', callbackGridXIncrement);
         $('button#x-dec').on('click', callbackGridXDecrement);
@@ -667,7 +648,8 @@ window.justree = window.justree || {};
         $('button#y-dec').on('click', callbackGridYDecrement);
         hookParamToSlider(growDepthMaxParam, '#depth-max');
         hookParamToSlider(growBreadthMaxParam, '#breadth-max');
-        $('button#generate').on('click', callbackGenerate);
+        $('button#generate-grid').on('click', callbackGenerateGrid);
+        $('button#mutate').on('click', callbackMutate);
 
         // edit selection callbacks
         $('button#clear').on('click', callbackClearClick);

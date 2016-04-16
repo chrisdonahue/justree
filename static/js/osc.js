@@ -58,12 +58,12 @@ window.justree = window.justree || {};
     };
     var callbackServerOpen = function (event) {
         console.log('socket open');
-        serverConnected = true;
+        connected = true;
         osc.serverSendMsg('/connect');
     };
     var callbackServerClose = function (event) {
         console.log('socket close');
-        serverConnected = false;
+        connected = false;
     };
     var callbackServerMessage = function (event) {
         console.log('socket message: ' + event.data);
@@ -79,19 +79,19 @@ window.justree = window.justree || {};
         clock.registerCallback(clockCallback); 
     };
     osc.serverConnect = function () {
-        serverSocket = new WebSocketPort({
+        socketOsc = new WebSocketPort({
             url: 'ws://' + config.oscServerIp + ':' + config.oscServerPort
         });
 
         // register socket callbacks
-        serverSocket.on('open', callbackServerOpen);
-        serverSocket.on('close', callbackServerClose);
-        serverSocket.on('message', callbackServerMessage);
-        serverSocket.on('error', callbackServerError);
+        socketOsc.on('open', callbackServerOpen);
+        socketOsc.on('close', callbackServerClose);
+        socketOsc.on('message', callbackServerMessage);
+        socketOsc.on('error', callbackServerError);
 
         // open socket
         try {
-            serverSocket.open();
+            socketOsc.open();
         }
         catch (e) {
             alert('Could not connect to audio server.');
@@ -99,16 +99,16 @@ window.justree = window.justree || {};
         }
     };
     osc.serverDisconnect = function () {
-        if (serverConnected) {
-            serverSocket.close();
+        if (connected) {
+            socketOsc.close();
         }
-        serverConnected = false;
-        serverSocket = null;
+        connected = false;
+        socketOsc = null;
     };
     osc.serverSendMsg = function (address, args) {
         args = args || [];
-        if (serverConnected) {
-            serverSocket.send({
+        if (connected) {
+            socketOsc.send({
                 address: address,
                 args: [clientFingerprint].concat(args)
             });

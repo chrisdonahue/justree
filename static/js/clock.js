@@ -30,15 +30,14 @@ window.justree = window.justree || {};
         }
 
         // calculate t and dt
-        var posAbsDelta, posRelDelta;
+        var posAbsDelta;
         if (webAudioSupported) {
             var posAbsDelta = webAudioPosAbsDelta;
-            var posRelDelta = posAbsDelta / timeLenParam.val;
         }
         else {
             var posAbsDelta = Math.pow(2, blockSizePow2.val) * timeoutMockFsInv;
-            var posRelDelta = posAbsDelta / timeLenParam.val;
         }
+        var posRelDelta = posAbsDelta / config.timeLenToAbs(timeLenParam.val);
 
         // clip dt if we're not looping
         if (!(state === ClockStateEnum.LOOPING) && posRel + posRelDelta >= 1.0) {
