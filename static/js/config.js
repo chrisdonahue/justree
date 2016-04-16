@@ -48,7 +48,7 @@ window.justree = window.justree || {};
         'valInit': 0.25
     };
     config.timeLenToAbs = function (timeLenRel) {
-        var min = 0.5;
+        var min = 0.25;
         var max = 30.0;
         var a = min;
         var b = max / min;

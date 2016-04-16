@@ -41,6 +41,7 @@ window.justree = window.justree || {};
             return;
         }
 
+        var gain = gainParam.val;
         var timeLen = timeLenParam.val;
         var freqMin = freqMinParam.val;
         var freqMaxRat = freqMaxRatParam.val;
@@ -50,7 +51,7 @@ window.justree = window.justree || {};
             var cell = cellsEmitting[i];
             var freqBase = freqMin * Math.pow(freqMaxRat, 1.0 - (cell.y + cell.height));
             var freqCutoff = freqMin * Math.pow(freqMaxRat, 1.0 - cell.y);
-            var velocity = cell.node.getVelocity();
+            var velocity = cell.node.getVelocity() * gain;
             var envLen = cell.width * timeLen * 1000.0;
 
             osc.serverSendMsg(noteOnAddress, [freqBase, freqCutoff, velocity, envAtk, envDcy, envLen]);
